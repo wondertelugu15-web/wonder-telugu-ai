@@ -20,28 +20,33 @@ jobs:
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: |
+          set -e
           mkdir -p content
           DATE=$(TZ=Asia/Kolkata date +%F)
 
-          if [ -f "content/$DATE.md" ]; then
-            echo "Today's content already exists."
-            exit 0
-          fi
+          PROMPT="Create one original Telugu YouTube Shorts script about an interesting science, nature, space or world fact. Write in Telugu, 120-150 words. Include an engaging hook, accurate explanation, title, description and hashtags. Never invent facts."
 
-          PROMPT="Write one original, fascinating Telugu YouTube Shorts script about an interesting science, nature, space or world fact. Use Telugu script, 120-150 words, a strong opening hook, accurate factual information, simple explanation, and engaging ending. Include a title, narration, description and hashtags. Do not invent facts. Mention sources to verify."
-
-          curl -sS \
+          HTTP_CODE=$(curl -sS \
+            -w "%{http_code}" \
+            -o response.json \
             -X POST \
             "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent" \
             -H "Content-Type: application/json" \
             -H "x-goog-api-key: $GEMINI_API_KEY" \
-            -d "$(jq -n --arg p "$PROMPT" '{contents:[{parts:[{text:$p}]}]}')" \
-            -o response.json
+            -d "$(jq -n --arg p "$PROMPT" '{contents:[{parts:[{text:$p}]}]}')")
 
-          SCRIPT=$(jq -r '[.candidates[0].content.parts[].text] | join("\n")' response.json)
+          echo "API Status: $HTTP_CODE"
 
-          if [ -z "$SCRIPT" ] || [ "$SCRIPT" = "null" ]; then
-            echo "AI generation failed."
+          if [ "$HTTP_CODE" != "200" ]; then
+            echo "Gemini API Error:"
+            jq -r '.error.message // .' response.json
+            exit 1
+          fi
+
+          SCRIPT=$(jq -r '[.candidates[]?.content.parts[]?.text // empty] | join("\n")' response.json)
+
+          if [ -z "$SCRIPT" ]; then
+            echo "No content generated:"
             cat response.json
             exit 1
           fi
@@ -51,5 +56,5 @@ jobs:
           git config user.name "Wonder Telugu Bot"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add content/
-          git commit -m "Create Telugu content for $DATE"
+          git commit -m "Generate Telugu facts content"
           git push
