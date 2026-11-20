@@ -1,14 +1,8 @@
+
 edge-tts
 moviepy==2.2.1
 Pillow
 requests
-google-api-python-client
-google-auth-oauthlib
-google-auth-httplib2
-requests
-moviepy==2.2.1
-Pillow
-edge-tts
 google-api-python-client
 google-auth-oauthlib
 google-auth-httplib2
