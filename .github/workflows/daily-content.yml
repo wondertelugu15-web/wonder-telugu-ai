@@ -1,60 +1,169 @@
 
-name: Wonder Telugu Daily Content
+name: Daily Telugu Health Content
 
 on:
   workflow_dispatch:
   schedule:
-    - cron: '30 4 * * *'
+    # Every day at 3:30 AM UTC = 9:00 AM IST
+    - cron: "30 3 * * *"
 
 permissions:
   contents: write
 
 jobs:
-  generate:
+  generate-content:
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Generate Telugu facts script
+      - name: Generate Telugu health content
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: |
-          set -e
-          mkdir -p content
-          DATE=$(TZ=Asia/Kolkata date +%F)
+          set -euo pipefail
 
-          PROMPT="Create one original Telugu YouTube Shorts script about an interesting science, nature, space or world fact. Write in Telugu, 120-150 words. Include an engaging hook, accurate explanation, title, description and hashtags. Never invent facts."
-
-          HTTP_CODE=$(curl -sS \
-            -w "%{http_code}" \
-            -o response.json \
-            -X POST \
-            "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent" \
-            -H "Content-Type: application/json" \
-            -H "x-goog-api-key: $GEMINI_API_KEY" \
-            -d "$(jq -n --arg p "$PROMPT" '{contents:[{parts:[{text:$p}]}]}')")
-
-          echo "API Status: $HTTP_CODE"
-
-          if [ "$HTTP_CODE" != "200" ]; then
-            echo "Gemini API Error:"
-            jq -r '.error.message // .' response.json
+          if [ -z "${GEMINI_API_KEY:-}" ]; then
+            echo "ERROR: GEMINI_API_KEY secret is missing."
             exit 1
           fi
 
-          SCRIPT=$(jq -r '[.candidates[]?.content.parts[]?.text // empty] | join("\n")' response.json)
+          TODAY=$(TZ=Asia/Kolkata date +%Y-%m-%d)
+          mkdir -p content
 
-          if [ -z "$SCRIPT" ]; then
-            echo "No content generated:"
+          PROMPT=$(cat <<'EOF'
+          You are an expert Telugu health content writer.
+
+          Create one original, useful and engaging Telugu health video
+          script for an Indian audience.
+
+          CHANNEL: Wonder Telugu
+
+          MAIN TOPICS:
+          1. Children's health, nutrition and healthy habits.
+          2. Adult health, wellness and daily healthy habits.
+          3. Safe, evidence-based natural home remedies.
+          4. Family health, food and prevention tips.
+
+          TOPIC SELECTION:
+          Choose one interesting topic each day.
+          Avoid repeating recently covered topics when possible.
+          Prefer practical topics that families can understand and use.
+
+          LANGUAGE:
+          Use simple, natural, conversational Telugu.
+          Do not use Hindi.
+          Avoid difficult medical terminology.
+
+          REQUIRED OUTPUT:
+
+          # 1. Telugu Title
+          Write an attractive and truthful title.
+
+          # 2. Video Voiceover Script
+          Write a natural Telugu voiceover for approximately
+          45 to 60 seconds.
+          Start with an interesting question or hook.
+          Explain the topic clearly and practically.
+          End with a useful takeaway.
+
+          # 3. Scene-by-Scene Visual Prompts
+          Give 5 to 7 short visual prompts.
+          Describe realistic, family-friendly visuals.
+          Do not show misleading medical procedures.
+
+          # 4. Telugu Subtitles
+          Divide the voiceover into short subtitle lines.
+
+          # 5. Video Description
+          Write a short Telugu description.
+
+          # 6. Hashtags
+          Give 5 to 8 relevant hashtags.
+
+          HEALTH SAFETY RULES:
+          - Use accurate, evidence-based health information.
+          - Never claim that a remedy cures a disease.
+          - Never recommend stopping prescribed medicines.
+          - Never give medicine dosages or diagnose viewers.
+          - Never recommend honey to babies under 1 year.
+          - Do not recommend unsafe remedies or harmful practices.
+          - For children's health concerns, advise consulting a
+            qualified pediatrician when appropriate.
+          - Mention when a home remedy has limited evidence.
+          - Include this disclaimer in Telugu:
+            "ఈ వీడియో సాధారణ ఆరోగ్య అవగాహన కోసం మాత్రమే.
+            వ్యక్తిగత వైద్య సలహా కోసం వైద్యుడిని సంప్రదించండి."
+
+          Make the content original, useful, engaging and trustworthy.
+          Output only the completed video content.
+          EOF
+          )
+
+          REQUEST=$(jq -n --arg input "$PROMPT" '{
+            model: "gemini-3.8-flash",
+            input: $input
+          }')
+
+          echo "Requesting content from Gemini..."
+
+          HTTP_CODE=$(curl -sS \
+            --retry 3 \
+            --retry-delay 5 \
+            --retry-all-errors \
+            -o response.json \
+            -w "%{http_code}" \
+            -X POST \
+            "https://generativelanguage.googleapis.com/v1beta/interactions" \
+            -H "x-goog-api-key: ${GEMINI_API_KEY}" \
+            -H "Content-Type: application/json" \
+            -d "$REQUEST")
+
+          if [ "$HTTP_CODE" -lt 200 ] || [ "$HTTP_CODE" -ge 300 ]; then
+            echo "Gemini API returned HTTP $HTTP_CODE"
             cat response.json
             exit 1
           fi
 
-          printf "# Wonder Telugu - %s\n\n%s\n" "$DATE" "$SCRIPT" > "content/$DATE.md"
+          CONTENT=$(jq -r '
+            if (.output_text? != null) then
+              .output_text
+            else
+              [
+                .steps[]?
+                | select(.type == "model_output")
+                | .content[]?
+                | select(.type == "text")
+                | .text
+              ] | join("\n")
+            end
+          ' response.json)
 
-          git config user.name "Wonder Telugu Bot"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
+          if [ -z "$CONTENT" ] || [ "$CONTENT" = "null" ]; then
+            echo "ERROR: Gemini returned no usable text."
+            cat response.json
+            exit 1
+          fi
+
+          {
+            echo "# Wonder Telugu - $TODAY"
+            echo
+            echo "$CONTENT"
+          } > "content/$TODAY.md"
+
+          echo "Successfully created content/$TODAY.md"
+
+      - name: Save generated content to GitHub
+        run: |
+          git config user.name "Wonder Telugu AI"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
           git add content/
-          git commit -m "Generate Telugu facts content"
-          git push
+
+          if git diff --cached --quiet; then
+            echo "No new changes to save."
+          else
+            git commit -m "Add Telugu health content for $(TZ=Asia/Kolkata date +%Y-%m-%d)"
+            git push
+          fi
