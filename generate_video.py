@@ -1,32 +1,63 @@
 
-import os
 import re
-import requests
-import tempfile
 from pathlib import Path
 
-from moviepy import VideoFileClip, AudioFileClip, concatenate_videoclips, vfx
+from moviepy import (
+    VideoFileClip,
+    AudioFileClip,
+    concatenate_videoclips,
+    vfx
+)
+
+CONTENT_DIR = Path("content")
+VIDEO_DIR = Path("assets/videos")
 
 AUDIO = Path("telugu_audio.mp3")
 OUTPUT = Path("wonder_telugu_video.mp4")
-CONTENT_DIR = Path("content")
 
-PEXELS_API = "https://api.pexels.com/videos/search"
+WIDTH = 720
+HEIGHT = 1280
+FPS = 24
 
-SCENE_QUERIES = [
-    "Indian woman cooking in traditional kitchen",
-    "washing fresh vegetables in kitchen",
-    "chopping vegetables close up cooking",
-    "adding spices to Indian curry in pan",
-    "stirring food cooking in pan close up",
-    "serving homemade Indian food family"
-]
+SCENE_FILES = {
+    "kitchen": "01_kitchen.mp4",
+    "washing": "02_washing.mp4",
+    "chopping": "03_chopping.mp4",
+    "spices": "04_spices.mp4",
+    "stirring": "05_stirring.mp4",
+    "serving": "06_serving.mp4",
+}
+
+KEYWORDS = {
+    "washing": [
+        "wash", "washing", "కడగ", "శుభ్రం"
+    ],
+    "chopping": [
+        "chop", "cut", "కోయ", "ముక్కలు"
+    ],
+    "spices": [
+        "spice", "masala", "మసాలా", "పసుపు"
+    ],
+    "stirring": [
+        "stir", "mix", "కలప", "వేయించ", "ఉడిక"
+    ],
+    "serving": [
+        "serve", "serving", "వడ్డ", "ప్లేట్"
+    ],
+    "kitchen": [
+        "kitchen", "వంటగది", "వంట"
+    ],
+}
 
 
 def get_content_file():
     files = sorted(CONTENT_DIR.glob("*.md"))
+
     if not files:
-        raise FileNotFoundError("No daily content found in content folder")
+        raise FileNotFoundError(
+            "content folderలో Markdown file లేదు"
+        )
+
     return files[-1]
 
 
@@ -41,192 +72,141 @@ def get_scenes():
     )
 
     if not scenes:
-        return SCENE_QUERIES
-
-    return [re.sub(r"\s+", " ", s).strip()[:500] for s in scenes[:6]]
-
-
-def get_query(scene, index):
-    scene = scene.lower()
-
-    keywords = [
-        (["wash", "కడగ", "శుభ్రం"], "washing vegetables in Indian kitchen"),
-        (["chop", "cut", "కట్", "కోయ"], "chopping vegetables close up"),
-        (["spice", "మసాలా", "పసుపు"], "adding spices to Indian cooking"),
-        (["stir", "mix", "కలప", "కలుప"], "stirring curry in cooking pan"),
-        (["fry", "వేయించ"], "frying food in Indian kitchen"),
-        (["serve", "వడ్డ", "ప్లేట్"], "serving Indian homemade food"),
-        (["cook", "వంట", "ఉడిక"], "Indian woman cooking in kitchen")
-    ]
-
-    for words, query in keywords:
-        if any(word in scene for word in words):
-            return query
-
-    return SCENE_QUERIES[index % len(SCENE_QUERIES)]
-
-
-def find_video(query):
-    api_key = os.getenv("PEXELS_API_KEY")
-
-    if not api_key:
-        raise RuntimeError(
-            "PEXELS_API_KEY missing. Add it in GitHub repository secrets."
-        )
-
-    response = requests.get(
-        PEXELS_API,
-        headers={"Authorization": api_key},
-        params={
-            "query": query,
-            "per_page": 10,
-            "orientation": "portrait"
-        },
-        timeout=60
-    )
-
-    response.raise_for_status()
-    videos = response.json().get("videos", [])
-
-    if not videos:
-        raise RuntimeError(f"No Pexels videos found for: {query}")
-
-    # Prefer portrait videos with sufficient resolution.
-    videos.sort(
-        key=lambda v: (
-            v.get("height", 0) > v.get("width", 0),
-            v.get("height", 0)
-        ),
-        reverse=True
-    )
-
-    for video in videos:
-        files = video.get("video_files", [])
-
-        usable = [
-            f for f in files
-            if f.get("link")
-            and f.get("width", 0) >= 480
-            and f.get("height", 0) >= 480
+        scenes = [
+            "Traditional Indian kitchen",
+            "Washing vegetables",
+            "Chopping vegetables",
+            "Adding spices",
+            "Stirring food in a pan",
+            "Serving homemade food"
         ]
 
-        if usable:
-            usable.sort(
-                key=lambda f: (
-                    f.get("height", 0) > f.get("width", 0),
-                    f.get("height", 0)
-                ),
-                reverse=True
-            )
-            return usable[0]["link"]
-
-    raise RuntimeError("Pexels did not return a usable video file")
+    return [
+        re.sub(r"\s+", " ", scene).strip()
+        for scene in scenes[:8]
+    ]
 
 
-def download_video(url, path):
-    with requests.get(url, stream=True, timeout=180) as response:
-        response.raise_for_status()
+def select_video(scene, index):
+    scene_lower = scene.lower()
 
-        with open(path, "wb") as file:
-            for chunk in response.iter_content(chunk_size=1024 * 1024):
-                if chunk:
-                    file.write(chunk)
+    for category, words in KEYWORDS.items():
+        if any(word in scene_lower for word in words):
+            filename = SCENE_FILES[category]
+            path = VIDEO_DIR / filename
+
+            if path.exists():
+                return path
+
+    # If no keyword matches, use the clips in order.
+    available = [
+        VIDEO_DIR / filename
+        for filename in SCENE_FILES.values()
+        if (VIDEO_DIR / filename).exists()
+    ]
+
+    if not available:
+        raise FileNotFoundError(
+            "assets/videos folderలో వీడియో క్లిప్‌లు లేవు"
+        )
+
+    return available[index % len(available)]
 
 
 def make_vertical(clip):
-    target_width = 1080
-    target_height = 1920
-
     scale = max(
-        target_width / clip.w,
-        target_height / clip.h
+        WIDTH / clip.w,
+        HEIGHT / clip.h
     )
 
-    resized = clip.resized(
-        new_size=(
-            int(clip.w * scale),
-            int(clip.h * scale)
-        )
-    )
+    resized = clip.resized(scale)
 
-    x1 = max(0, (resized.w - target_width) / 2)
-    y1 = max(0, (resized.h - target_height) / 2)
+    x1 = (resized.w - WIDTH) / 2
+    y1 = (resized.h - HEIGHT) / 2
 
     return resized.cropped(
         x1=x1,
         y1=y1,
-        x2=x1 + target_width,
-        y2=y1 + target_height
+        x2=x1 + WIDTH,
+        y2=y1 + HEIGHT
     )
 
 
 def main():
     if not AUDIO.exists():
-        raise FileNotFoundError("telugu_audio.mp3 not found")
+        raise FileNotFoundError(
+            "telugu_audio.mp3 not found. Run generate_audio.py first."
+        )
+
+    if not VIDEO_DIR.exists():
+        raise FileNotFoundError(
+            "assets/videos folder not found"
+        )
 
     scenes = get_scenes()
-
-    print(f"Found {len(scenes)} cooking scenes")
 
     audio = AudioFileClip(str(AUDIO))
     scene_duration = audio.duration / len(scenes)
 
-    final_clips = []
-    source_clips = []
+    original_clips = []
+    scene_clips = []
+    final_video = None
 
     try:
-        with tempfile.TemporaryDirectory() as temp_dir:
+        for index, scene in enumerate(scenes):
+            video_path = select_video(scene, index)
 
-            for index, scene in enumerate(scenes):
-                query = get_query(scene, index)
+            print(
+                f"Scene {index + 1}: {scene[:80]}"
+            )
+            print("Using:", video_path)
 
-                print(f"Scene {index + 1}: {query}")
-
-                video_url = find_video(query)
-
-                video_path = Path(temp_dir) / f"scene_{index + 1}.mp4"
-
-                download_video(video_url, video_path)
-
-                source = VideoFileClip(str(video_path))
-                source_clips.append(source)
-
-                vertical = make_vertical(source)
-
-                # Repeat short clips to fill the scene duration.
-                looped = vertical.with_effects([
-                    vfx.Loop(duration=scene_duration)
-                ])
-
-                final_clips.append(
-                    looped.subclipped(0, scene_duration)
-                )
-
-            video = concatenate_videoclips(
-                final_clips,
-                method="compose"
+            original = VideoFileClip(
+                str(video_path),
+                audio=False
             )
 
-            video = video.with_audio(audio)
+            original_clips.append(original)
 
-            video.write_videofile(
-                str(OUTPUT),
-                fps=24,
-                codec="libx264",
-                audio_codec="aac",
-                preset="ultrafast",
-                threads=2
+            vertical = make_vertical(original)
+
+            looped = vertical.with_effects([
+                vfx.Loop(duration=scene_duration)
+            ])
+
+            scene_clip = looped.subclipped(
+                0,
+                scene_duration
             )
 
-            video.close()
+            scene_clips.append(scene_clip)
 
-        print("Wonder Telugu vertical cooking video created!")
+        final_video = concatenate_videoclips(
+            scene_clips,
+            method="compose"
+        )
+
+        final_video = final_video.with_audio(audio)
+
+        final_video.write_videofile(
+            str(OUTPUT),
+            fps=FPS,
+            codec="libx264",
+            audio_codec="aac",
+            preset="ultrafast",
+            threads=2
+        )
+
+        print("Video created successfully:", OUTPUT)
 
     finally:
-        audio.close()
+        if final_video:
+            final_video.close()
 
-        for clip in source_clips:
+        for clip in original_clips:
             clip.close()
+
+        audio.close()
 
 
 if __name__ == "__main__":
