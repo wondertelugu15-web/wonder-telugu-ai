@@ -4,11 +4,8 @@ name: Wonder Telugu Daily Video
 on:
   workflow_dispatch:
 
-# Quality పరీక్ష పూర్తయ్యే వరకు రోజువారీ ఆటోమేటిక్ అప్‌లోడ్ నిలిపివేశాం.
-# మళ్లీ ప్రారంభించాలంటే schedule భాగాన్ని enable చేయాలి.
-
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   create-video:
@@ -28,20 +25,21 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
+      - name: Check cooking video clips
+        run: |
+          python -c "from pathlib import Path; p=Path('assets/videos'); files=list(p.glob('*.mp4')) if p.exists() else []; print('Found',len(files),'video clips'); assert len(files)>0, 'Add cooking clips to assets/videos first'"
+
       - name: Generate Telugu voice
         run: python generate_audio.py
 
-      - name: Generate video
+      - name: Generate cooking video
         run: python generate_video.py
 
       - name: Save generated video
         uses: actions/upload-artifact@v4
         with:
           name: wonder-telugu-video
-          path: wonder_telugu_video.mp4
+          path: |
+            wonder_telugu_video.mp4
+            telugu_audio.mp3
           retention-days: 7
-
-      - name: Upload video to YouTube
-        env:
-          YOUTUBE_TOKEN_JSON: ${{ secrets.YOUTUBE_TOKEN_JSON }}
-        run: python youtube_upload.py
