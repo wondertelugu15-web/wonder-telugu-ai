@@ -30,15 +30,25 @@ def get_scenes():
     return [re.sub(r"\s+", " ", s).strip()[:500] for s in scenes[:6]]
 
 def download_image(prompt, number):
-    url = "https://image.pollinations.ai/prompt/" + quote(
-        "Realistic cinematic photograph, traditional Telugu village home, "
-        "family friendly, natural lighting, 16:9. " + prompt
-    )
+    import time
 
-    response = requests.get(
+    url = "https://stable-diffusion-xl.endpoints.kepler.ai.cloud.ovh.net/api/text2image"
+
+    payload = {
+        "prompt": (
+            "Realistic cinematic photograph, traditional Telugu village "
+            "home, family friendly, natural lighting, " + prompt
+        ),
+        "negative_prompt": "blurry, cartoon, distorted, low quality"
+    }
+
+    time.sleep(35)
+
+    response = requests.post(
         url,
-        params={"width": 1280, "height": 720, "nologo": "true"},
-        timeout=120
+        json=payload,
+        headers={"Content-Type": "application/json"},
+        timeout=180
     )
     response.raise_for_status()
 
