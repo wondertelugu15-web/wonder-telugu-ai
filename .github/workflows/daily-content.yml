@@ -1,5 +1,4 @@
-
-name: Wonder Telugu Daily Health Content
+name: Wonder Telugu Daily Video
 
 on:
   workflow_dispatch:
@@ -10,195 +9,32 @@ permissions:
   contents: write
 
 jobs:
-  generate-content:
+  create-video:
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Generate Telugu health video script
-        env:
-          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install packages
         run: |
-          set -euo pipefail
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
 
-          if [ -z "${GEMINI_API_KEY:-}" ]; then
-            echo "ERROR: GEMINI_API_KEY is missing."
-            exit 1
-          fi
+      - name: Generate Telugu voice
+        run: python generate_audio.py
 
-          TODAY=$(TZ=Asia/Kolkata date +%Y-%m-%d)
-          mkdir -p content
+      - name: Generate video
+        run: python generate_video.py
 
-          PROMPT=$(cat <<'PROMPT_EOF'
-          You are the creative director and Telugu health content writer
-          for a family-friendly channel called Wonder Telugu.
-
-          Create one original Telugu health video every day.
-
-          MAIN CONTENT CATEGORIES:
-          - Children's health and nutrition.
-          - Mother's and father's health.
-          - Grandparents' health and wellness.
-          - Healthy food and family habits.
-          - Safe, evidence-based home care tips.
-          - Traditional Telugu food and lifestyle.
-
-          LANGUAGE AND VOICE:
-          - Use beautiful, natural, simple spoken Telugu.
-          - Use authentic Telugu pronunciation and vocabulary.
-          - The tone must be sweet, warm, respectful and caring.
-          - No vulgar words, rude slang, shouting or overacting.
-          - Never use Hindi.
-          - Write dialogue as real Telugu family members speak.
-
-          FAMILY CHARACTERS:
-          Use suitable characters depending on the topic:
-          - Loving Telugu mother.
-          - Caring father.
-          - Kind grandmother (ammamma or nannamma).
-          - Friendly grandfather (thatayya).
-          - Aunt (attayya) and uncle (mamaiah).
-          - Happy, well-behaved children.
-
-          NATURAL VILLAGE VISUAL STYLE:
-          - Realistic Telugu village family atmosphere.
-          - Women wearing neat, beautiful sarees.
-          - Men wearing clean traditional or simple village clothes.
-          - Children wearing clean, modest, age-appropriate clothes.
-          - Grandparents should look dignified and naturally aged.
-          - Show clean village kitchens, courtyards and gardens.
-          - Include traditional homes and a neat tulasi plant area.
-          - Use natural daylight and realistic colours.
-          - People must look natural, with realistic faces and expressions.
-          - Show warm family interactions.
-          - Avoid cartoon characters, artificial-looking faces,
-            luxury interiors and revealing clothing.
-          - Do not make the village look dirty or unhygienic.
-
-          VIDEO STYLE:
-          The video should feel like a real, loving Telugu family
-          sharing useful health knowledge at home.
-          It should be peaceful, wholesome, beautiful and trustworthy.
-
-          REQUIRED OUTPUT:
-
-          # 1. Telugu Title
-          Write one attractive but truthful Telugu title.
-
-          # 2. Voiceover Script
-          Write a natural Telugu script for a 45-60 second video.
-          Start with an interesting question or situation.
-          Explain one useful health topic clearly.
-          End with a caring and memorable takeaway.
-          Include suggested speaker identity and voice tone.
-          Do not use exaggerated claims.
-
-          # 3. Scene-by-Scene Video Prompts
-          Give 6 to 8 detailed visual prompts.
-          Each scene should describe the characters, clothing,
-          location, expressions, actions and camera view.
-          Maintain consistent character appearance across scenes.
-          Use realistic live-action style, not cartoons.
-          Add natural Telugu dialogue where suitable.
-
-          # 4. Telugu Subtitles
-          Divide the voiceover into short, readable Telugu lines.
-          Keep the wording natural and easy to understand.
-
-          # 5. Video Description
-          Write a useful Telugu description for the video.
-
-          # 6. Hashtags
-          Provide 5 to 8 relevant hashtags.
-
-          HEALTH ACCURACY AND SAFETY:
-          - Use reliable, evidence-based health information.
-          - Never claim that a food or home remedy cures a disease.
-          - Never invent scientific facts or medical benefits.
-          - Do not advise viewers to stop prescribed medicines.
-          - Do not provide medicine dosages or diagnose people.
-          - Never recommend honey for babies under one year.
-          - Do not recommend unsafe remedies or harmful practices.
-          - Do not present traditional beliefs as proven medical facts.
-          - Clearly explain when evidence for a home remedy is limited.
-          - For children's health concerns, recommend consulting
-            a qualified pediatrician when appropriate.
-          - Mention warning signs that need medical attention when relevant.
-
-          Add this Telugu disclaimer:
-          "ఈ వీడియో సాధారణ ఆరోగ్య అవగాహన కోసం మాత్రమే.
-          వ్యక్తిగత వైద్య సలహా కోసం వైద్యుడిని సంప్రదించండి."
-
-          IMPORTANT:
-          Create original content every day.
-          Avoid repeating the same topic whenever possible.
-          Do not use vulgar language or sensational medical claims.
-          Output the complete content in Telugu.
-          PROMPT_EOF
-          )
-
-          REQUEST=$(jq -n --arg input "$PROMPT" '{
-            model: "gemini-3.8-flash",
-            input: $input
-          }')
-
-          echo "Generating today's Telugu content..."
-
-          HTTP_CODE=$(curl -sS \
-            --retry 3 \
-            --retry-delay 5 \
-            --retry-all-errors \
-            -o response.json \
-            -w "%{http_code}" \
-            -X POST \
-            "https://generativelanguage.googleapis.com/v1beta/interactions" \
-            -H "x-goog-api-key: ${GEMINI_API_KEY}" \
-            -H "Content-Type: application/json" \
-            -d "$REQUEST")
-
-          if [ "$HTTP_CODE" -lt 200 ] || [ "$HTTP_CODE" -ge 300 ]; then
-            echo "Gemini API error: HTTP $HTTP_CODE"
-            cat response.json
-            exit 1
-          fi
-
-          CONTENT=$(jq -r '
-            .output_text //
-            (
-              [
-                .steps[]?.content[]?
-                | select(.type == "text")
-                | .text
-              ] | join("\n")
-            )
-          ' response.json)
-
-          if [ -z "$CONTENT" ] || [ "$CONTENT" = "null" ]; then
-            echo "ERROR: No script was returned."
-            cat response.json
-            exit 1
-          fi
-
-          {
-            echo "# Wonder Telugu - $TODAY"
-            echo
-            echo "$CONTENT"
-          } > "content/$TODAY.md"
-
-          echo "Content generated successfully."
-
-      - name: Save content to GitHub
-        run: |
-          git config user.name "Wonder Telugu AI"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-
-          git add content/
-
-          if git diff --cached --quiet; then
-            echo "No new changes to save."
-          else
-            git commit -m "Generate Telugu health content"
-            git push
-          fi
+      - name: Save generated video
+        uses: actions/upload-artifact@v4
+        with:
+          name: wonder-telugu-video
+          path: wonder_telugu_video.mp4
+          retention-days: 7
