@@ -1,10 +1,9 @@
 
-name: Daily Telugu Health Content
+name: Wonder Telugu Daily Health Content
 
 on:
   workflow_dispatch:
   schedule:
-    # Every day at 3:30 AM UTC = 9:00 AM IST
     - cron: "30 3 * * *"
 
 permissions:
@@ -18,116 +17,126 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Generate Telugu health content
+      - name: Generate Telugu health video script
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: |
           set -euo pipefail
 
           if [ -z "${GEMINI_API_KEY:-}" ]; then
-            echo "ERROR: GEMINI_API_KEY secret is missing."
+            echo "ERROR: GEMINI_API_KEY is missing."
             exit 1
           fi
 
           TODAY=$(TZ=Asia/Kolkata date +%Y-%m-%d)
           mkdir -p content
 
-          PROMPT=$(cat <<'EOF'
-          You are an expert Telugu health content writer.
+          PROMPT=$(cat <<'PROMPT_EOF'
+          You are the creative director and Telugu health content writer
+          for a family-friendly channel called Wonder Telugu.
 
-          Create one original, useful and engaging Telugu health video
-          script for an Indian audience.
+          Create one original Telugu health video every day.
 
-          CHANNEL: Wonder Telugu
+          MAIN CONTENT CATEGORIES:
+          - Children's health and nutrition.
+          - Mother's and father's health.
+          - Grandparents' health and wellness.
+          - Healthy food and family habits.
+          - Safe, evidence-based home care tips.
+          - Traditional Telugu food and lifestyle.
 
-          MAIN TOPICS:
-          1. Children's health, nutrition and healthy habits.
-          2. Adult health, wellness and daily healthy habits.
-          3. Safe, evidence-based natural home remedies.
-          4. Family health, food and prevention tips.
+          LANGUAGE AND VOICE:
+          - Use beautiful, natural, simple spoken Telugu.
+          - Use authentic Telugu pronunciation and vocabulary.
+          - The tone must be sweet, warm, respectful and caring.
+          - No vulgar words, rude slang, shouting or overacting.
+          - Never use Hindi.
+          - Write dialogue as real Telugu family members speak.
 
-          TOPIC SELECTION:
-          Choose one interesting topic each day.
-          Avoid repeating recently covered topics when possible.
-          Prefer practical topics that families can understand and use.
+          FAMILY CHARACTERS:
+          Use suitable characters depending on the topic:
+          - Loving Telugu mother.
+          - Caring father.
+          - Kind grandmother (ammamma or nannamma).
+          - Friendly grandfather (thatayya).
+          - Aunt (attayya) and uncle (mamaiah).
+          - Happy, well-behaved children.
 
-          LANGUAGE:
-          Use simple, natural, conversational Telugu.
-          Do not use Hindi.
-          Avoid difficult medical terminology.
+          NATURAL VILLAGE VISUAL STYLE:
+          - Realistic Telugu village family atmosphere.
+          - Women wearing neat, beautiful sarees.
+          - Men wearing clean traditional or simple village clothes.
+          - Children wearing clean, modest, age-appropriate clothes.
+          - Grandparents should look dignified and naturally aged.
+          - Show clean village kitchens, courtyards and gardens.
+          - Include traditional homes and a neat tulasi plant area.
+          - Use natural daylight and realistic colours.
+          - People must look natural, with realistic faces and expressions.
+          - Show warm family interactions.
+          - Avoid cartoon characters, artificial-looking faces,
+            luxury interiors and revealing clothing.
+          - Do not make the village look dirty or unhygienic.
+
+          VIDEO STYLE:
+          The video should feel like a real, loving Telugu family
+          sharing useful health knowledge at home.
+          It should be peaceful, wholesome, beautiful and trustworthy.
 
           REQUIRED OUTPUT:
 
           # 1. Telugu Title
-          Write an attractive and truthful title.
+          Write one attractive but truthful Telugu title.
 
-          # 2. Video Voiceover Script
-          Write a natural Telugu voiceover for approximately
-          45 to 60 seconds.
-          Start with an interesting question or hook.
-          Explain the topic clearly and practically.
-          End with a useful takeaway.
+          # 2. Voiceover Script
+          Write a natural Telugu script for a 45-60 second video.
+          Start with an interesting question or situation.
+          Explain one useful health topic clearly.
+          End with a caring and memorable takeaway.
+          Include suggested speaker identity and voice tone.
+          Do not use exaggerated claims.
 
-          # 3. Scene-by-Scene Visual Prompts
-          Give 5 to 7 short visual prompts.
-          Describe realistic, family-friendly visuals.
-          Do not show misleading medical procedures.
+          # 3. Scene-by-Scene Video Prompts
+          Give 6 to 8 detailed visual prompts.
+          Each scene should describe the characters, clothing,
+          location, expressions, actions and camera view.
+          Maintain consistent character appearance across scenes.
+          Use realistic live-action style, not cartoons.
+          Add natural Telugu dialogue where suitable.
 
           # 4. Telugu Subtitles
-          Divide the voiceover into short subtitle lines.
+          Divide the voiceover into short, readable Telugu lines.
+          Keep the wording natural and easy to understand.
 
           # 5. Video Description
-          Write a short Telugu description.
+          Write a useful Telugu description for the video.
 
           # 6. Hashtags
-          Give 5 to 8 relevant hashtags.
+          Provide 5 to 8 relevant hashtags.
 
-          HEALTH SAFETY RULES:
-          - Use accurate, evidence-based health information.
-          - Never claim that a remedy cures a disease.
-          - Never recommend stopping prescribed medicines.
-          - Never give medicine dosages or diagnose viewers.
-          - Never recommend honey to babies under 1 year.
+          HEALTH ACCURACY AND SAFETY:
+          - Use reliable, evidence-based health information.
+          - Never claim that a food or home remedy cures a disease.
+          - Never invent scientific facts or medical benefits.
+          - Do not advise viewers to stop prescribed medicines.
+          - Do not provide medicine dosages or diagnose people.
+          - Never recommend honey for babies under one year.
           - Do not recommend unsafe remedies or harmful practices.
-          - For children's health concerns, advise consulting a
-            qualified pediatrician when appropriate.
-          - Mention when a home remedy has limited evidence.
-          - Include this disclaimer in Telugu:
-            "ఈ వీడియో సాధారణ ఆరోగ్య అవగాహన కోసం మాత్రమే.
-            వ్యక్తిగత వైద్య సలహా కోసం వైద్యుడిని సంప్రదించండి."
+          - Do not present traditional beliefs as proven medical facts.
+          - Clearly explain when evidence for a home remedy is limited.
+          - For children's health concerns, recommend consulting
+            a qualified pediatrician when appropriate.
+          - Mention warning signs that need medical attention when relevant.
 
-          Make the content original, useful, engaging and trustworthy.
-          Output only the completed video content.
-          
-VISUAL AND VOICE STYLE - WONDER TELUGU:
+          Add this Telugu disclaimer:
+          "ఈ వీడియో సాధారణ ఆరోగ్య అవగాహన కోసం మాత్రమే.
+          వ్యక్తిగత వైద్య సలహా కోసం వైద్యుడిని సంప్రదించండి."
 
-The videos must feel like a real, loving Telugu village family.
-
-VOICE STYLE:
-- Use sweet, gentle, natural Telugu pronunciation.
-- Use authentic Telugu family voices: mother, father, grandmother, grandfather, aunt and uncle.
-- Children's voices should sound innocent and age-appropriate.
-- Avoid vulgar slang, rude words, shouting, artificial excitement and exaggerated acting.
-- Never use Hindi or unnatural Telugu pronunciation.
-
-CHARACTERS AND CLOTHING:
-- Show neat, healthy-looking children wearing clean, age-appropriate, modest clothes.
-- Women should wear beautiful traditional sarees or modest traditional clothing.
-- Men should wear clean, simple traditional village clothing.
-- Grandparents should look warm, dignified and naturally aged.
-
-VILLAGE ENVIRONMENT:
-- Show clean and beautiful Telugu village homes.
-- Include realistic kitchens, courtyards, gardens and traditional household settings.
-- Use natural daylight and realistic colours.
-- Show loving family interactions and natural facial expressions.
-- Avoid luxury houses, artificial sets, cartoon characters and plastic-looking AI faces.
-
-OVERALL FEEL:
-Warm, peaceful, traditional Telugu family atmosphere.
-Every video should look natural, respectful, clean and emotionally comforting.
-
-          EOF
+          IMPORTANT:
+          Create original content every day.
+          Avoid repeating the same topic whenever possible.
+          Do not use vulgar language or sensational medical claims.
+          Output the complete content in Telugu.
+          PROMPT_EOF
           )
 
           REQUEST=$(jq -n --arg input "$PROMPT" '{
@@ -135,7 +144,7 @@ Every video should look natural, respectful, clean and emotionally comforting.
             input: $input
           }')
 
-          echo "Requesting content from Gemini..."
+          echo "Generating today's Telugu content..."
 
           HTTP_CODE=$(curl -sS \
             --retry 3 \
@@ -150,27 +159,24 @@ Every video should look natural, respectful, clean and emotionally comforting.
             -d "$REQUEST")
 
           if [ "$HTTP_CODE" -lt 200 ] || [ "$HTTP_CODE" -ge 300 ]; then
-            echo "Gemini API returned HTTP $HTTP_CODE"
+            echo "Gemini API error: HTTP $HTTP_CODE"
             cat response.json
             exit 1
           fi
 
           CONTENT=$(jq -r '
-            if (.output_text? != null) then
-              .output_text
-            else
+            .output_text //
+            (
               [
-                .steps[]?
-                | select(.type == "model_output")
-                | .content[]?
+                .steps[]?.content[]?
                 | select(.type == "text")
                 | .text
               ] | join("\n")
-            end
+            )
           ' response.json)
 
           if [ -z "$CONTENT" ] || [ "$CONTENT" = "null" ]; then
-            echo "ERROR: Gemini returned no usable text."
+            echo "ERROR: No script was returned."
             cat response.json
             exit 1
           fi
@@ -181,9 +187,9 @@ Every video should look natural, respectful, clean and emotionally comforting.
             echo "$CONTENT"
           } > "content/$TODAY.md"
 
-          echo "Successfully created content/$TODAY.md"
+          echo "Content generated successfully."
 
-      - name: Save generated content to GitHub
+      - name: Save content to GitHub
         run: |
           git config user.name "Wonder Telugu AI"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
@@ -193,6 +199,6 @@ Every video should look natural, respectful, clean and emotionally comforting.
           if git diff --cached --quiet; then
             echo "No new changes to save."
           else
-            git commit -m "Add Telugu health content for $(TZ=Asia/Kolkata date +%Y-%m-%d)"
+            git commit -m "Generate Telugu health content"
             git push
           fi
