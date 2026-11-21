@@ -52,7 +52,7 @@ def load_story_scenes():
     content_file = get_content_file()
     story = content_file.read_text(encoding="utf-8")
     section = re.search(
-        r"##\\s*3\\.\\s*Scene-by-Scene Video Prompts(.*?)(?=##\\s*4\\.|\\Z)",
+        r"##\s*3\.\s*Scene-by-Scene Video Prompts(.*?)(?=##\s*4\.|\Z)",
         story,
         re.IGNORECASE | re.DOTALL,
     )
@@ -63,13 +63,13 @@ def load_story_scenes():
         )
 
     matches = re.findall(
-        r"###\\s*Scene\\s*(\\d+)\\s*:\\s*(.*?)(?=###\\s*Scene\\s*\\d+\\s*:|\\Z)",
+        r"###\s*Scene\s*(\d+)\s*:\s*(.*?)(?=###\s*Scene\s*\d+\s*:|\Z)",
         section.group(1),
         re.IGNORECASE | re.DOTALL,
     )
     scenes = []
     for number, body in matches:
-        description = re.sub(r"\\s+", " ", body).strip()
+        description = re.sub(r"\s+", " ", body).strip()
         if not description:
             raise ValueError(f"Scene {number}లో video prompt ఖాళీగా ఉంది.")
         scenes.append((int(number), description))
@@ -86,7 +86,7 @@ def load_story_scenes():
     print(f"Story-first mode: {content_file} ({len(scenes)} authored scenes)", flush=True)
     return [
         (SCENE_FILENAMES[number - 1],
-         f"{CONTINUITY_PROMPT}\\n\\nScene {number}: {description}")
+         f"{CONTINUITY_PROMPT}\n\nScene {number}: {description}")
         for number, description in scenes
     ]
 
