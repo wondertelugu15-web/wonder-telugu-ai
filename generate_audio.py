@@ -12,6 +12,10 @@ OUTPUT = Path("telugu_audio.mp3")
 
 VOICES = {
     "అమ్మమ్మ": "te-IN-ShrutiNeural",
+    "అత్తయ్య": "te-IN-ShrutiNeural",
+    "కోడలు": "te-IN-ShrutiNeural",
+    "మామయ్య": "te-IN-MohanNeural",
+    "భర్త": "te-IN-MohanNeural",
     "అవ్వ": "te-IN-ShrutiNeural",
     "నానమ్మ": "te-IN-ShrutiNeural",
     "అమ్మ": "te-IN-ShrutiNeural",
