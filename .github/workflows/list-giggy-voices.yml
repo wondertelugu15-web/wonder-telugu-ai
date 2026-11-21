@@ -1,0 +1,19 @@
+name: List Giggy Telugu Voices
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  list-voices:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: List available Telugu voices (no audio generation)
+        env:
+          GIGGY_API_KEY: ${{ secrets.GIGGY_API_KEY }}
+        run: python list_giggy_voices.py
