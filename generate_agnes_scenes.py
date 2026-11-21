@@ -1,8 +1,6 @@
 import os
-import re
 import time
 from pathlib import Path
-from urllib.parse import urlparse
 
 import requests
 
@@ -12,6 +10,7 @@ API_KEY = os.environ.get("AGNES_API_KEY")
 VIDEO_DIR = Path("assets/videos")
 POLL_SECONDS = 10
 MAX_POLLS = 90
+QUEUE_RETRY_DELAYS = (30, 60, 120, 180, 240)
 
 SCENES = [
     ("agnes_01_kitchen.mp4", "A realistic Telugu grandmother in a clean, attractive South Indian home kitchen preparing ingredients for homemade tomato dal. Warm natural daylight, authentic Indian kitchen, medium camera shot, realistic human appearance and natural hand movements. No text, no subtitles, no logos."),
@@ -27,15 +26,39 @@ def api_request(method, url, **kwargs):
     headers = kwargs.pop("headers", {})
     headers["Authorization"] = f"Bearer {API_KEY}"
     headers["Content-Type"] = "application/json"
-    response = requests.request(method, url, headers=headers, timeout=90, **kwargs)
-    if not response.ok:
+
+    is_video_create = method.upper() == "POST" and url.endswith("/v1/videos")
+    attempts = len(QUEUE_RETRY_DELAYS) + 1 if is_video_create else 1
+
+    for attempt in range(attempts):
+        response = requests.request(method, url, headers=headers, timeout=90, **kwargs)
+        if response.ok:
+            try:
+                return response.json()
+            except ValueError as exc:
+                raise RuntimeError("Agnes API returned non-JSON response") from exc
+
+        # Agnes explicitly rejected this request because its queue is full.
+        # Retry only this known transient response; never retry other API errors.
+        if (
+            is_video_create
+            and response.status_code == 503
+            and "video_queue_full" in response.text
+            and attempt < len(QUEUE_RETRY_DELAYS)
+        ):
+            delay = QUEUE_RETRY_DELAYS[attempt]
+            print(
+                f"Agnes video queue is full. Safe retry "
+                f"{attempt + 1}/{len(QUEUE_RETRY_DELAYS)} in {delay} seconds."
+            )
+            time.sleep(delay)
+            continue
+
         raise RuntimeError(
             f"Agnes API HTTP {response.status_code}: {response.text[:1200]}"
         )
-    try:
-        return response.json()
-    except ValueError as exc:
-        raise RuntimeError("Agnes API returned non-JSON response") from exc
+
+    raise RuntimeError("Agnes video queue remained full after all safe retries.")
 
 
 def create_and_download(filename, prompt):
@@ -71,7 +94,7 @@ def create_and_download(filename, prompt):
     else:
         raise TimeoutError(f"Timed out waiting for Agnes video {video_id}")
 
-    video_url = result.get("url") or result.get("video_url") or result.get("remixed_from_video_id")
+    video_url = result.get("url") or result.get("video_url")
     if not isinstance(video_url, str) or not video_url.startswith("https://"):
         raise RuntimeError(f"Agnes completed response has no HTTPS video URL: {result}")
 
