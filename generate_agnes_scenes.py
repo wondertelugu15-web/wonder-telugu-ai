@@ -10,7 +10,8 @@ API_KEY = os.environ.get("AGNES_API_KEY")
 VIDEO_DIR = Path("assets/videos")
 POLL_SECONDS = 10
 MAX_POLLS = 90
-QUEUE_RETRY_DELAYS = (60, 120, 180, 300, 300, 300, 300, 300)
+# Agnes queue-full is a provider-side transient condition. Wait up to 2 hours.
+QUEUE_RETRY_DELAYS = (300,) * 24
 
 SCENES = [
     ("agnes_01_kitchen.mp4", "Vertical 9:16 cinematic photorealistic South Indian family drama. In the same warm, sunlit Indian home kitchen, a middle-aged Telugu mother-in-law wearing a maroon sari with tied-back dark hair and a small bindi holds a steel bowl of leftover rice. She speaks with her young adult daughter-in-law wearing a mustard-gold sari, maroon blouse, long dark braid and small bindi. The younger woman smiles confidently and gestures that she can make three dishes. Natural expressive faces, believable body movement, medium two-shot, consistent character appearance. No cartoon style, no text, no subtitles, no logos."),
@@ -49,7 +50,8 @@ def api_request(method, url, **kwargs):
             delay = QUEUE_RETRY_DELAYS[attempt]
             print(
                 f"Agnes video queue is full. Safe retry "
-                f"{attempt + 1}/{len(QUEUE_RETRY_DELAYS)} in {delay} seconds."
+                f"{attempt + 1}/{len(QUEUE_RETRY_DELAYS)} in {delay} seconds.",
+                flush=True,
             )
             time.sleep(delay)
             continue
@@ -76,7 +78,7 @@ def create_and_download(filename, prompt):
     if not video_id:
         raise RuntimeError(f"Agnes create response has no video_id: {created}")
 
-    print(f"Created {filename}; waiting for video result.")
+    print(f"Created {filename}; waiting for video result.", flush=True)
     result = {}
     for attempt in range(MAX_POLLS):
         result = api_request(
@@ -110,7 +112,7 @@ def create_and_download(filename, prompt):
     if not target.exists() or target.stat().st_size < 100_000:
         target.unlink(missing_ok=True)
         raise RuntimeError(f"Downloaded video is missing or unexpectedly small: {filename}")
-    print(f"Saved {target} ({target.stat().st_size} bytes)")
+    print(f"Saved {target} ({target.stat().st_size} bytes)", flush=True)
 
 
 def main():
