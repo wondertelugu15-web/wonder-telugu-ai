@@ -1,0 +1,56 @@
+name: Wonder Telugu Voice Preview (Free)
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  voice-preview:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install voice dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install edge-tts moviepy==2.2.1
+
+      - name: Validate six-scene story and dialogue
+        run: |
+          python - <<'PY'
+          import runpy
+          from pathlib import Path
+
+          namespace = runpy.run_path("generate_audio.py")
+          content_files = sorted(Path("content").glob("*.md"))
+          if not content_files:
+              raise SystemExit("No story file found.")
+          story = content_files[-1].read_text(encoding="utf-8")
+          script = namespace["extract_script"](story)
+          scenes = namespace["parse_scene_dialogue"](script)
+          print(f"Validated {len(scenes)} scenes.")
+          for number, lines in scenes.items():
+              print(f"Scene {number}: {len(lines)} dialogue lines")
+          PY
+
+      - name: Generate Telugu scene-by-scene voice preview
+        run: python generate_audio.py
+
+      - name: Upload free voice preview
+        uses: actions/upload-artifact@v4
+        with:
+          name: wonder-telugu-voice-preview
+          path: |
+            telugu_audio.mp3
+            assets/audio/scene_*.mp3
+          retention-days: 7
