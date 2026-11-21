@@ -20,33 +20,21 @@ HEIGHT = 1280
 FPS = 24
 
 SCENE_FILES = {
-    "kitchen": "agnes_01_kitchen.mp4",
-    "washing": "agnes_02_washing.mp4",
-    "chopping": "agnes_03_chopping.mp4",
-    "spices": "agnes_04_spices.mp4",
-    "stirring": "agnes_05_stirring.mp4",
+    "hook": "agnes_01_kitchen.mp4",
+    "batter": "agnes_02_washing.mp4",
+    "paniyaram": "agnes_03_chopping.mp4",
+    "pakodi": "agnes_04_spices.mp4",
+    "curd": "agnes_05_stirring.mp4",
     "serving": "agnes_06_serving.mp4",
 }
 
 KEYWORDS = {
-    "washing": [
-        "wash", "washing", "కడగ", "శుభ్రం"
-    ],
-    "chopping": [
-        "chop", "cut", "కోయ", "ముక్కలు"
-    ],
-    "spices": [
-        "spice", "masala", "మసాలా", "పసుపు"
-    ],
-    "stirring": [
-        "stir", "mix", "కలప", "వేయించ", "ఉడిక"
-    ],
-    "serving": [
-        "serve", "serving", "వడ్డ", "ప్లేట్"
-    ],
-    "kitchen": [
-        "kitchen", "వంటగది", "వంట"
-    ],
+    "hook": ["family story", "అత్తయ్య", "కోడలు", "మిగిలిన అన్నం"],
+    "batter": ["mixing", "కలుపు", "బియ్యప్పిండి", "మిశ్రమం"],
+    "paniyaram": ["పునుగులు", "పాన్", "తిప్పుతోంది", "బంగారు రంగు"],
+    "pakodi": ["పకోడీ", "పకోడీలు", "వేడి నూనె", "వేయిస్తోంది"],
+    "curd": ["పెరుగు అన్నం", "పెరుగు", "పోపు", "కరివేపాకు"],
+    "serving": ["వడ్డిస్తోంది", "వడ్డించ", "కుటుంబం", "రుచి చూస్తున్నారు"],
 }
 
 
