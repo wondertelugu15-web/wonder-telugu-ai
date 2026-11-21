@@ -52,7 +52,7 @@ def load_story_scenes():
     content_file = get_content_file()
     story = content_file.read_text(encoding="utf-8")
     section = re.search(
-        r"##\s*3\.\s*Scene-by-Scene Video Prompts(.*?)(?=##\s*4\.|\Z)",
+        r"##\s*\d+\.\s*Scene-by-Scene Video Prompts(.*?)(?=##\s*\d+\.|\Z)",
         story,
         re.IGNORECASE | re.DOTALL,
     )
