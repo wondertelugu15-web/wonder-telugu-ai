@@ -10,6 +10,7 @@ permissions:
 jobs:
   create-video:
     runs-on: ubuntu-latest
+    timeout-minutes: 240
 
     steps:
       - name: Checkout repository
