@@ -15,19 +15,31 @@ SCENE_COUNT = 6
 API_KEY = os.environ.get("GIGGY_API_KEY", "").strip()
 TTS_URL = "https://api.giggy.ai/v1/text-to-speech"
 
-# Five separate Telugu character voices from the supplied Giggy catalogue.
-# The catalogue has no verified child-labelled voice; this is a distinct lighter
-# female candidate and must be auditioned before treating it as a child voice.
-VOICES = {
-    "అత్తయ్య": "bfa43980-3843-4372-a218-18a7917a0a2f",  # Pragata Katha
-    "కోడలు": "20f1ddf7-61ab-4ee5-8691-d8a26eb53b9f",  # Meghana Lakshmi
-    "మామయ్య": "ccc70883-70d0-4a97-be95-5f4f0f58b64e",  # Ramakrishna Baluraju
-    "భర్త": "07dfcc98-9c82-4308-9bd5-ff329cb4cdbb",  # Vijay Keshavarao
-    "పిల్ల": "1e70b97b-9a47-420a-86c1-33e80e3cda42",  # Shravani Reddy candidate
-    "పిల్లలు": "1e70b97b-9a47-420a-86c1-33e80e3cda42",
-    "అబ్బాయి": "1e70b97b-9a47-420a-86c1-33e80e3cda42",
-    "అమ్మాయి": "1e70b97b-9a47-420a-86c1-33e80e3cda42",
+# Character voice IDs must be authorized custom voices created in Giggy My Voices.
+VOICE_ENV = {
+    "అత్తయ్య": "GIGGY_VOICE_ATTHA",
+    "కోడలు": "GIGGY_VOICE_KODALU",
+    "మామయ్య": "GIGGY_VOICE_MAMAYYA",
+    "భర్త": "GIGGY_VOICE_BHARTA",
+    "పిల్ల": "GIGGY_VOICE_PILLA",
+    "పిల్లలు": "GIGGY_VOICE_PILLA",
+    "అబ్బాయి": "GIGGY_VOICE_PILLA",
+    "అమ్మాయి": "GIGGY_VOICE_PILLA",
 }
+
+def load_voices():
+    voices, missing = {}, []
+    for character, secret_name in VOICE_ENV.items():
+        voice_id = os.environ.get(secret_name, "").strip()
+        if voice_id:
+            voices[character] = voice_id
+        else:
+            missing.append(secret_name)
+    if missing:
+        raise SystemExit("Missing custom voice IDs: " + ", ".join(sorted(set(missing))))
+    return voices
+
+VOICES = load_voices()
 
 def get_content_file():
     files = sorted(CONTENT_DIR.glob("*.md"))
