@@ -1,4 +1,5 @@
 import os
+import re
 import time
 from pathlib import Path
 
@@ -7,20 +8,87 @@ import requests
 API_ROOT = "https://apihub.agnes-ai.com"
 MODEL = "agnes-video-2.5-flash"
 API_KEY = os.environ.get("AGNES_API_KEY")
+ALLOW_PAID_VIDEO_GENERATION = os.environ.get("ALLOW_PAID_VIDEO_GENERATION", "false").lower() == "true"
+CONTENT_DIR = Path("content")
 VIDEO_DIR = Path("assets/videos")
 POLL_SECONDS = 10
 MAX_POLLS = 90
 # Agnes queue-full is a provider-side transient condition. Wait up to 2 hours.
 QUEUE_RETRY_DELAYS = (300,) * 24
 
-SCENES = [
-    ("agnes_01_kitchen.mp4", "Vertical 9:16 cinematic photorealistic South Indian family drama. In the same warm, sunlit Indian home kitchen, a middle-aged Telugu mother-in-law wearing a maroon sari with tied-back dark hair and a small bindi holds a steel bowl of leftover rice. She speaks with her young adult daughter-in-law wearing a mustard-gold sari, maroon blouse, long dark braid and small bindi. The younger woman smiles confidently and gestures that she can make three dishes. Natural expressive faces, believable body movement, medium two-shot, consistent character appearance. No cartoon style, no text, no subtitles, no logos."),
-    ("agnes_02_washing.mp4", "Vertical 9:16 cinematic photorealistic cooking scene in the exact same warm South Indian kitchen. The same young Telugu daughter-in-law in mustard-gold sari and maroon blouse mashes leftover cooked rice in a steel bowl, adds curd, rice flour, chopped onion, green chilli, cumin and coriander, then mixes with her hands. The same middle-aged mother-in-law in maroon sari watches curiously beside her. Show clear realistic hand action and ingredient textures, close-up then medium shot. Preserve the same faces, clothes and kitchen. No cartoon, no text, no subtitles, no logos."),
-    ("agnes_03_chopping.mp4", "Vertical 9:16 photorealistic cinematic South Indian cooking close-up in the same kitchen. The same young daughter-in-law, mustard-gold sari and maroon blouse, places small portions of leftover-rice batter into a hot paniyaram pan, turns the round golden rice paniyaram with a small wooden skewer. The same mother-in-law in maroon sari smiles in the background. Visible sizzling and accurate cooking motion, warm natural light, realistic food. Maintain character and kitchen continuity. No cartoon, no text, no subtitles, no logos."),
-    ("agnes_04_spices.mp4", "Vertical 9:16 photorealistic cinematic cooking scene in the same South Indian kitchen. The same daughter-in-law in mustard-gold sari carefully drops small onion and rice-flour pakodi portions into hot oil; they bubble and turn crisp golden brown. The same middle-aged mother-in-law in maroon sari tastes one pakodi and reacts with delighted surprise. Clear frying action, realistic oil bubbles, expressive reaction, warm light. Same faces, clothes and kitchen. No cartoon, no text, no subtitles, no logos."),
-    ("agnes_05_stirring.mp4", "Vertical 9:16 photorealistic cinematic close-up in the same warm South Indian kitchen. The same young daughter-in-law in mustard-gold sari mixes leftover rice with curd and a little milk in a steel bowl, then pours a sizzling tempering of mustard seeds, green chilli and curry leaves into it. Show the actual mixing and pouring clearly, realistic food texture and natural hand movement. Preserve the same character and kitchen. No cartoon, no text, no subtitles, no logos."),
-    ("agnes_06_serving.mp4", "Vertical 9:16 photorealistic cinematic family finale in the same Indian home. The same daughter-in-law in mustard-gold sari serves three dishes: golden rice paniyaram, crisp rice pakodi and curd rice. The same mother-in-law in maroon sari, young husband in olive-green shirt and father-in-law in simple traditional clothes taste the food and smile with impressed surprise. Warm family interaction, natural expressive faces, wide shot then food close-up. Keep faces and clothing consistent. No cartoon, no text, no subtitles, no logos."),
-]
+SCENE_FILENAMES = (
+    "agnes_01_kitchen.mp4",
+    "agnes_02_washing.mp4",
+    "agnes_03_chopping.mp4",
+    "agnes_04_spices.mp4",
+    "agnes_05_stirring.mp4",
+    "agnes_06_serving.mp4",
+)
+
+CONTINUITY_PROMPT = """
+Create a vertical 9:16 photorealistic live-action Telugu family cooking drama.
+Keep the same people, faces, ages, hairstyles, clothing and the same warm,
+clean South Indian home kitchen across every scene. Mother-in-law: middle-aged
+Telugu woman in a maroon sari, tied-back dark hair and small bindi. Daughter-in-law:
+young adult Telugu woman in a mustard-gold sari, maroon blouse, long dark braid
+and small bindi. Husband: young adult Telugu man in a plain olive-green shirt.
+Father-in-law: middle-aged Telugu man in simple traditional clothes.
+Natural Indian body language, subtle facial expressions and realistic hands.
+Show the exact ingredients and cooking action described for this scene.
+Cinematic natural light, clear food detail, believable movement. No cartoon,
+no slideshow, no montage of still images, no text, no logos, no subtitles,
+no extra fingers, no duplicated people.
+""".strip()
+
+
+def get_content_file():
+    files = sorted(CONTENT_DIR.glob("*.md"))
+    if not files:
+        raise FileNotFoundError("content folderలో Markdown file లేదు")
+    return files[-1]
+
+
+def load_story_scenes():
+    content_file = get_content_file()
+    story = content_file.read_text(encoding="utf-8")
+    section = re.search(
+        r"##\\s*3\\.\\s*Scene-by-Scene Video Prompts(.*?)(?=##\\s*4\\.|\\Z)",
+        story,
+        re.IGNORECASE | re.DOTALL,
+    )
+    if not section:
+        raise ValueError(
+            f"{content_file}లో '3. Scene-by-Scene Video Prompts' section లేదు. "
+            "కథ, డైలాగులు, సన్నివేశాలు సిద్ధం చేసిన తర్వాతే వీడియో చేయాలి."
+        )
+
+    matches = re.findall(
+        r"###\\s*Scene\\s*(\\d+)\\s*:\\s*(.*?)(?=###\\s*Scene\\s*\\d+\\s*:|\\Z)",
+        section.group(1),
+        re.IGNORECASE | re.DOTALL,
+    )
+    scenes = []
+    for number, body in matches:
+        description = re.sub(r"\\s+", " ", body).strip()
+        if not description:
+            raise ValueError(f"Scene {number}లో video prompt ఖాళీగా ఉంది.")
+        scenes.append((int(number), description))
+
+    scenes.sort(key=lambda item: item[0])
+    expected = list(range(1, len(SCENE_FILENAMES) + 1))
+    actual = [number for number, _ in scenes]
+    if actual != expected:
+        raise ValueError(
+            f"{content_file}లో ఖచ్చితంగా Scene 1 నుంచి Scene 6 వరకు ఉండాలి. "
+            f"కనిపించినవి: {actual}"
+        )
+
+    print(f"Story-first mode: {content_file} ({len(scenes)} authored scenes)", flush=True)
+    return [
+        (SCENE_FILENAMES[number - 1],
+         f"{CONTINUITY_PROMPT}\\n\\nScene {number}: {description}")
+        for number, description in scenes
+    ]
 
 
 def api_request(method, url, **kwargs):
@@ -39,8 +107,6 @@ def api_request(method, url, **kwargs):
             except ValueError as exc:
                 raise RuntimeError("Agnes API returned non-JSON response") from exc
 
-        # Agnes explicitly rejected this request because its queue is full.
-        # Retry only this known transient response; never retry other API errors.
         if (
             is_video_create
             and response.status_code == 503
@@ -87,7 +153,7 @@ def create_and_download(filename, prompt):
             params={"video_id": video_id, "model_name": MODEL},
         )
         status = str(result.get("status", "")).lower()
-        print(f"{filename}: {status or 'pending'} ({attempt + 1}/{MAX_POLLS})")
+        print(f"{filename}: {status or 'pending'} ({attempt + 1}/{MAX_POLLS})", flush=True)
         if status in {"completed", "succeeded", "success", "done"}:
             break
         if status in {"failed", "error", "cancelled"}:
@@ -116,17 +182,25 @@ def create_and_download(filename, prompt):
 
 
 def main():
+    # Parse and validate the complete story before any paid API request.
+    scenes = load_story_scenes()
+
+    if not ALLOW_PAID_VIDEO_GENERATION:
+        raise RuntimeError(
+            "Paid video generation is LOCKED. No Agnes API request was made. "
+            "Set ALLOW_PAID_VIDEO_GENERATION=true only after reviewing the "
+            "estimated cost and explicitly approving this run."
+        )
     if not API_KEY:
         raise RuntimeError("AGNES_API_KEY GitHub Secret is missing.")
     if not API_KEY.startswith("sk-"):
         raise RuntimeError("AGNES_API_KEY does not look like an Agnes secret key.")
 
-    # Do not reuse old generated clips from a previous workflow run.
     VIDEO_DIR.mkdir(parents=True, exist_ok=True)
-    for filename, _ in SCENES:
+    for filename, _ in scenes:
         (VIDEO_DIR / filename).unlink(missing_ok=True)
 
-    for filename, prompt in SCENES:
+    for filename, prompt in scenes:
         create_and_download(filename, prompt)
 
 
