@@ -76,30 +76,22 @@ def get_scenes():
 
 
 def select_video(scene, index):
-    scene_lower = scene.lower()
-
-    for category, words in KEYWORDS.items():
-        if any(word in scene_lower for word in words):
-            filename = SCENE_FILES[category]
-            path = VIDEO_DIR / filename
-
-            if path.exists():
-                return path
-
-    # If no keyword matches, use the clips in order.
-    available = [
-        VIDEO_DIR / filename
-        for filename in SCENE_FILES.values()
-        if (VIDEO_DIR / filename).exists()
-    ]
-
-    if not available:
-        raise FileNotFoundError(
-            "assets/videos folderలో వీడియో క్లిప్‌లు లేవు"
+    # Scene headings in the content file are authored in the same order
+    # as the six generated story clips. Select by sequence so dialogue
+    # mentioning a character cannot accidentally select the wrong footage.
+    filenames = list(SCENE_FILES.values())
+    if index >= len(filenames):
+        raise IndexError(
+            f"Scene {index + 1} has no generated clip. "
+            f"Expected at most {len(filenames)} story scenes."
         )
 
-    return available[index % len(available)]
-
+    path = VIDEO_DIR / filenames[index]
+    if not path.exists():
+        raise FileNotFoundError(
+            f"Required story clip is missing for scene {index + 1}: {path}"
+        )
+    return path
 
 def make_vertical(clip):
     scale = max(
