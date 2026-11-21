@@ -15,27 +15,18 @@ SCENE_COUNT = 6
 API_KEY = os.environ.get("GIGGY_API_KEY", "").strip()
 TTS_URL = "https://api.giggy.ai/v1/text-to-speech"
 
-# Initial role candidates from the user's Telugu catalogue; audition before adoption.
+# Five separate Telugu character voices from the supplied Giggy catalogue.
+# The catalogue has no verified child-labelled voice; this is a distinct lighter
+# female candidate and must be auditioned before treating it as a child voice.
 VOICES = {
-    "అమ్మమ్మ": "bfa43980-3843-4372-a218-18a7917a0a2f",
-    "అత్తయ్య": "bfa43980-3843-4372-a218-18a7917a0a2f",
-    "కోడలు": "20f1ddf7-61ab-4ee5-8691-d8a26eb53b9f",
-    "అవ్వ": "bfa43980-3843-4372-a218-18a7917a0a2f",
-    "నానమ్మ": "bfa43980-3843-4372-a218-18a7917a0a2f",
-    "అమ్మ": "20f1ddf7-61ab-4ee5-8691-d8a26eb53b9f",
-    "మనవరాలు": "20f1ddf7-61ab-4ee5-8691-d8a26eb53b9f",
-    "పాప": "20f1ddf7-61ab-4ee5-8691-d8a26eb53b9f",
-    "మామయ్య": "63b09e42-1f2f-48ab-a5f0-10f5fce152f8",
-    "భర్త": "63b09e42-1f2f-48ab-a5f0-10f5fce152f8",
-    "తాతయ్య": "63b09e42-1f2f-48ab-a5f0-10f5fce152f8",
-    "తాత": "63b09e42-1f2f-48ab-a5f0-10f5fce152f8",
-    "తాతగారు": "63b09e42-1f2f-48ab-a5f0-10f5fce152f8",
-    "నాన్న": "63b09e42-1f2f-48ab-a5f0-10f5fce152f8",
-    "Grandmother": "bfa43980-3843-4372-a218-18a7917a0a2f",
-    "Granddaughter": "20f1ddf7-61ab-4ee5-8691-d8a26eb53b9f",
-    "Mother": "20f1ddf7-61ab-4ee5-8691-d8a26eb53b9f",
-    "Grandfather": "63b09e42-1f2f-48ab-a5f0-10f5fce152f8",
-    "Father": "63b09e42-1f2f-48ab-a5f0-10f5fce152f8",
+    "అత్తయ్య": "bfa43980-3843-4372-a218-18a7917a0a2f",  # Pragata Katha
+    "కోడలు": "20f1ddf7-61ab-4ee5-8691-d8a26eb53b9f",  # Meghana Lakshmi
+    "మామయ్య": "ccc70883-70d0-4a97-be95-5f4f0f58b64e",  # Ramakrishna Baluraju
+    "భర్త": "07dfcc98-9c82-4308-9bd5-ff329cb4cdbb",  # Vijay Keshavarao
+    "పిల్ల": "1e70b97b-9a47-420a-86c1-33e80e3cda42",  # Shravani Reddy candidate
+    "పిల్లలు": "1e70b97b-9a47-420a-86c1-33e80e3cda42",
+    "అబ్బాయి": "1e70b97b-9a47-420a-86c1-33e80e3cda42",
+    "అమ్మాయి": "1e70b97b-9a47-420a-86c1-33e80e3cda42",
 }
 
 def get_content_file():
