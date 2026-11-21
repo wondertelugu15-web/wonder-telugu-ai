@@ -33,6 +33,13 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
+      # Build and validate the character dialogue audio first. If the TTS
+      # secret or voice service is unavailable, fail before any paid video call.
+      - name: Generate Telugu character voices
+        env:
+          GIGGY_API_KEY: ${{ secrets.GIGGY_API_KEY }}
+        run: python generate_audio.py
+
       - name: Generate recipe cooking scenes from the approved story
         env:
           AGNES_API_KEY: ${{ secrets.AGNES_API_KEY }}
@@ -61,9 +68,6 @@ jobs:
               )
           print("Validated", len(clips), "non-demo video clips.")
           PY
-
-      - name: Generate Telugu voice from the approved story
-        run: python generate_audio.py
 
       - name: Normalize cooking clips for MoviePy
         run: |
