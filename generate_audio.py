@@ -1,37 +1,42 @@
 import asyncio
+import json
+import os
 import re
+import urllib.error
+import urllib.request
 from pathlib import Path
 
-import edge_tts
 from moviepy import AudioFileClip, concatenate_audioclips
 
 CONTENT_DIR = Path("content")
 OUTPUT = Path("telugu_audio.mp3")
 SCENE_AUDIO_DIR = Path("assets/audio")
 SCENE_COUNT = 6
+API_KEY = os.environ.get("GIGGY_API_KEY", "").strip()
+TTS_URL = "https://api.giggy.ai/v1/text-to-speech"
 
+# Initial role candidates from the user's Telugu catalogue; audition before adoption.
 VOICES = {
-    "అమ్మమ్మ": "te-IN-ShrutiNeural",
-    "అత్తయ్య": "te-IN-ShrutiNeural",
-    "కోడలు": "te-IN-ShrutiNeural",
-    "మామయ్య": "te-IN-MohanNeural",
-    "భర్త": "te-IN-MohanNeural",
-    "అవ్వ": "te-IN-ShrutiNeural",
-    "నానమ్మ": "te-IN-ShrutiNeural",
-    "అమ్మ": "te-IN-ShrutiNeural",
-    "మనవరాలు": "te-IN-ShrutiNeural",
-    "పాప": "te-IN-ShrutiNeural",
-    "తాతయ్య": "te-IN-MohanNeural",
-    "తాత": "te-IN-MohanNeural",
-    "తాతగారు": "te-IN-MohanNeural",
-    "నాన్న": "te-IN-MohanNeural",
-    "Grandmother": "te-IN-ShrutiNeural",
-    "Granddaughter": "te-IN-ShrutiNeural",
-    "Mother": "te-IN-ShrutiNeural",
-    "Grandfather": "te-IN-MohanNeural",
-    "Father": "te-IN-MohanNeural",
+    "అమ్మమ్మ": "bfa43980-3843-4372-a218-18a7917a0a2f",
+    "అత్తయ్య": "bfa43980-3843-4372-a218-18a7917a0a2f",
+    "కోడలు": "20f1ddf7-61ab-4ee5-8691-d8a26eb53b9f",
+    "అవ్వ": "bfa43980-3843-4372-a218-18a7917a0a2f",
+    "నానమ్మ": "bfa43980-3843-4372-a218-18a7917a0a2f",
+    "అమ్మ": "20f1ddf7-61ab-4ee5-8691-d8a26eb53b9f",
+    "మనవరాలు": "20f1ddf7-61ab-4ee5-8691-d8a26eb53b9f",
+    "పాప": "20f1ddf7-61ab-4ee5-8691-d8a26eb53b9f",
+    "మామయ్య": "63b09e42-1f2f-48ab-a5f0-10f5fce152f8",
+    "భర్త": "63b09e42-1f2f-48ab-a5f0-10f5fce152f8",
+    "తాతయ్య": "63b09e42-1f2f-48ab-a5f0-10f5fce152f8",
+    "తాత": "63b09e42-1f2f-48ab-a5f0-10f5fce152f8",
+    "తాతగారు": "63b09e42-1f2f-48ab-a5f0-10f5fce152f8",
+    "నాన్న": "63b09e42-1f2f-48ab-a5f0-10f5fce152f8",
+    "Grandmother": "bfa43980-3843-4372-a218-18a7917a0a2f",
+    "Granddaughter": "20f1ddf7-61ab-4ee5-8691-d8a26eb53b9f",
+    "Mother": "20f1ddf7-61ab-4ee5-8691-d8a26eb53b9f",
+    "Grandfather": "63b09e42-1f2f-48ab-a5f0-10f5fce152f8",
+    "Father": "63b09e42-1f2f-48ab-a5f0-10f5fce152f8",
 }
-
 
 def get_content_file():
     files = sorted(CONTENT_DIR.glob("*.md"))
@@ -39,161 +44,140 @@ def get_content_file():
         raise FileNotFoundError("content folderలో Markdown file లేదు")
     return files[-1]
 
-
 def extract_script(text):
-    match = re.search(
-        r"Voiceover Script|వాయిస్ ఓవర్ స్క్రిప్ట్",
-        text,
-        re.IGNORECASE,
-    )
+    match = re.search(r"Voiceover Script|వాయిస్ ఓవర్ స్క్రిప్ట్", text, re.IGNORECASE)
     if not match:
         raise ValueError("Content fileలో Voiceover Script section కనిపించలేదు")
-
     remaining = text[match.end():]
     next_section = re.search(r"\n#{1,3}\s+|\n---", remaining)
     if next_section:
         remaining = remaining[:next_section.start()]
     return remaining.strip()
 
-
 def clean_text(text):
     text = re.sub(r"\*\*(.*?)\*\*", r"\1", text)
     text = re.sub(r"\*(.*?)\*", r"\1", text)
     text = re.sub(r"`(.*?)`", r"\1", text)
     text = re.sub(r"^\s*[-•]\s*", "", text)
-    # Parenthetical stage directions are visual notes, not spoken dialogue.
     text = re.sub(r"^\([^)]*\)\s*", "", text)
     return text.strip()
 
-
 def parse_scene_dialogue(script):
-    speaker_names = "|".join(
-        re.escape(name)
-        for name in sorted(VOICES, key=len, reverse=True)
-    )
+    speaker_names = "|".join(re.escape(name) for name in sorted(VOICES, key=len, reverse=True))
     speaker_pattern = re.compile(
         rf"^\s*(?:[-*]\s*)?(?:\*\*)?({speaker_names})(?:\*\*)?\s*[:：]\s*(.*)$",
         re.IGNORECASE,
     )
-    scene_pattern = re.compile(r"^\s*\*\*?\s*సన్నివేశం\s*(\d+)\b", re.IGNORECASE)
-
+    scene_pattern = re.compile(r"^\s*\*?\s*సన్నివేశం\s*(\d+)\b", re.IGNORECASE)
     scenes = {number: [] for number in range(1, SCENE_COUNT + 1)}
     current_scene = None
-
     for raw_line in script.splitlines():
         line = raw_line.strip()
         if not line:
             continue
-
         heading = scene_pattern.match(line)
         if heading:
             current_scene = int(heading.group(1))
             if current_scene not in scenes:
                 raise ValueError(f"Unexpected scene number: {current_scene}")
             continue
-
         if current_scene is None:
             continue
-
         match = speaker_pattern.match(line)
-        if not match:
-            continue
-
-        speaker = match.group(1)
-        spoken_text = clean_text(match.group(2))
-        if spoken_text:
-            voice = VOICES.get(speaker, "te-IN-ShrutiNeural")
-            scenes[current_scene].append((voice, spoken_text))
-
-    missing = [number for number, lines in scenes.items() if not lines]
+        if match:
+            speaker, spoken_text = match.group(1), clean_text(match.group(2))
+            if spoken_text:
+                scenes[current_scene].append((speaker, VOICES[speaker], spoken_text))
+    missing = [n for n, lines in scenes.items() if not lines]
     if missing:
-        raise ValueError(
-            "ప్రతి సన్నివేశానికి voice dialogue ఉండాలి. "
-            f"డైలాగులు లేని సన్నివేశాలు: {missing}"
-        )
+        raise ValueError(f"డైలాగులు లేని సన్నివేశాలు: {missing}")
     return scenes
 
+def giggy_generate(text, voice_id, output_file, idempotency_key):
+    payload = {
+        "text": text,
+        "voice_id": voice_id,
+        "model_id": "giggyspeech",
+        "mode": "batch",
+        "output_format": "mp3_24000_160",
+        "voice_settings": {"speed": 1.0},
+    }
+    req = urllib.request.Request(
+        TTS_URL,
+        data=json.dumps(payload, ensure_ascii=False).encode("utf-8"),
+        headers={
+            "xi-api-key": API_KEY,
+            "Content-Type": "application/json",
+            "Accept": "audio/mpeg",
+            "Idempotency-Key": idempotency_key,
+        },
+        method="POST",
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=180) as response:
+            data = response.read()
+            content_type = response.headers.get("Content-Type", "")
+            if "audio" not in content_type.lower() or not data:
+                raise RuntimeError(f"Giggy did not return audio (Content-Type={content_type}).")
+            output_file.write_bytes(data)
+    except urllib.error.HTTPError as exc:
+        details = exc.read().decode("utf-8", errors="replace")
+        raise RuntimeError(f"Giggy TTS failed: HTTP {exc.code}: {details[:1500]}") from exc
 
 async def create_scene_audio(scene_number, segments):
     SCENE_AUDIO_DIR.mkdir(parents=True, exist_ok=True)
     output_file = SCENE_AUDIO_DIR / f"scene_{scene_number:02d}.mp3"
-    temporary_files = []
-
+    part_files = []
     try:
-        for index, (voice, spoken_text) in enumerate(segments, start=1):
+        for index, (speaker, voice_id, spoken_text) in enumerate(segments, start=1):
             part_file = SCENE_AUDIO_DIR / f".scene_{scene_number:02d}_{index:03d}.mp3"
-            print(
-                f"Scene {scene_number}, dialogue {index}: {voice}",
-                flush=True,
+            print(f"Scene {scene_number}, dialogue {index}: {speaker} ({voice_id})", flush=True)
+            await asyncio.to_thread(
+                giggy_generate, spoken_text, voice_id, part_file,
+                f"wonder-telugu-scene-{scene_number:02d}-line-{index:03d}",
             )
-            communicate = edge_tts.Communicate(
-                text=spoken_text,
-                voice=voice,
-            )
-            await communicate.save(str(part_file))
-            temporary_files.append(part_file)
-
+            part_files.append(part_file)
         clips = []
         combined = None
         try:
-            clips = [AudioFileClip(str(path)) for path in temporary_files]
+            clips = [AudioFileClip(str(path)) for path in part_files]
             combined = concatenate_audioclips(clips)
-            combined.write_audiofile(
-                str(output_file),
-                fps=24000,
-                codec="libmp3lame",
-                logger=None,
-            )
+            combined.write_audiofile(str(output_file), fps=24000, codec="libmp3lame", logger=None)
         finally:
             if combined:
                 combined.close()
             for clip in clips:
                 clip.close()
     finally:
-        for path in temporary_files:
+        for path in part_files:
             path.unlink(missing_ok=True)
-
-    print(f"Saved scene voice: {output_file}", flush=True)
+    print(f"Saved Giggy scene audio: {output_file}", flush=True)
     return output_file
 
-
 def main():
+    if not API_KEY:
+        raise SystemExit("Missing GitHub Actions secret: GIGGY_API_KEY")
     content_file = get_content_file()
     print("Reading story:", content_file, flush=True)
-    story = content_file.read_text(encoding="utf-8")
-    script = extract_script(story)
-    scenes = parse_scene_dialogue(script)
-
-    # Remove stale audio so a failed run cannot mix old and new scenes.
+    scenes = parse_scene_dialogue(extract_script(content_file.read_text(encoding="utf-8")))
     SCENE_AUDIO_DIR.mkdir(parents=True, exist_ok=True)
     for old_file in SCENE_AUDIO_DIR.glob("scene_*.mp3"):
         old_file.unlink()
-
     scene_files = []
     for number in range(1, SCENE_COUNT + 1):
-        scene_files.append(
-            asyncio.run(create_scene_audio(number, scenes[number]))
-        )
-
+        scene_files.append(asyncio.run(create_scene_audio(number, scenes[number])))
     clips = []
     combined = None
     try:
         clips = [AudioFileClip(str(path)) for path in scene_files]
         combined = concatenate_audioclips(clips)
-        combined.write_audiofile(
-            str(OUTPUT),
-            fps=24000,
-            codec="libmp3lame",
-            logger=None,
-        )
+        combined.write_audiofile(str(OUTPUT), fps=24000, codec="libmp3lame", logger=None)
     finally:
         if combined:
             combined.close()
         for clip in clips:
             clip.close()
-
-    print("Telugu scene-synced audio created:", OUTPUT, flush=True)
-
+    print("Giggy Telugu scene-synced audio created:", OUTPUT, flush=True)
 
 if __name__ == "__main__":
     main()
