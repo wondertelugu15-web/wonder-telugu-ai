@@ -20,12 +20,12 @@ HEIGHT = 1280
 FPS = 24
 
 SCENE_FILES = {
-    "kitchen": "01_kitchen.mp4",
-    "washing": "02_washing.mp4",
-    "chopping": "03_chopping.mp4",
-    "spices": "04_spices.mp4",
-    "stirring": "05_stirring.mp4",
-    "serving": "06_serving.mp4",
+    "kitchen": "agnes_01_kitchen.mp4",
+    "washing": "agnes_02_washing.mp4",
+    "chopping": "agnes_03_chopping.mp4",
+    "spices": "agnes_04_spices.mp4",
+    "stirring": "agnes_05_stirring.mp4",
+    "serving": "agnes_06_serving.mp4",
 }
 
 KEYWORDS = {
@@ -133,7 +133,7 @@ def make_vertical(clip):
 
 
 def main():
-    sample_names = set(SCENE_FILES.values())
+    sample_names = {\n        "01_kitchen.mp4", "02_washing.mp4", "03_chopping.mp4",\n        "04_spices.mp4", "05_stirring.mp4", "06_serving.mp4"\n    }
     present_samples = sorted(
         p.name for p in VIDEO_DIR.glob("*.mp4")
         if p.name in sample_names
