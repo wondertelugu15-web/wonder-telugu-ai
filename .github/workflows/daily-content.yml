@@ -25,6 +25,11 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
+      - name: Generate recipe cooking scenes with Agnes AI
+        env:
+          AGNES_API_KEY: ${{ secrets.AGNES_API_KEY }}
+        run: python generate_agnes_scenes.py
+
       - name: Reject demo clips
         run: |
           python - <<'PY'
