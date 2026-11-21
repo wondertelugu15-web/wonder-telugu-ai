@@ -85,11 +85,6 @@ def parse_scene_dialogue(script):
     return scenes
 
 def giggy_generate(text, voice_id, output_file, idempotency_key):
-    # Same exact request gets the same key on retry; changed text/voice gets a new key.
-    request_fingerprint = hashlib.sha256(
-        f"{idempotency_key}|{voice_id}|{text}".encode("utf-8")
-    ).hexdigest()
-    safe_idempotency_key = f"wonder-telugu-{request_fingerprint}"
     payload = {
         "text": text,
         "voice_id": voice_id,
@@ -98,6 +93,10 @@ def giggy_generate(text, voice_id, output_file, idempotency_key):
         "output_format": "mp3_24000_160",
         "voice_settings": {"speed": 1.0},
     }
+    # Versioned key derived from the complete canonical request body.
+    canonical_payload = json.dumps(payload, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+    request_fingerprint = hashlib.sha256(canonical_payload.encode("utf-8")).hexdigest()
+    safe_idempotency_key = f"wonder-telugu-v2-{request_fingerprint}"
     req = urllib.request.Request(
         TTS_URL,
         data=json.dumps(payload, ensure_ascii=False).encode("utf-8"),
@@ -126,12 +125,18 @@ async def create_scene_audio(scene_number, segments):
     part_files = []
     try:
         for index, (speaker, voice_id, spoken_text) in enumerate(segments, start=1):
-            part_file = SCENE_AUDIO_DIR / f".scene_{scene_number:02d}_{index:03d}.mp3"
-            print(f"Scene {scene_number}, dialogue {index}: {speaker} ({voice_id})", flush=True)
-            await asyncio.to_thread(
-                giggy_generate, spoken_text, voice_id, part_file,
-                f"wonder-telugu-scene-{scene_number:02d}-line-{index:03d}",
-            )
+            part_fingerprint = hashlib.sha256(
+                f"{voice_id}|{spoken_text}".encode("utf-8")
+            ).hexdigest()[:16]
+            part_file = SCENE_AUDIO_DIR / f".scene_{scene_number:02d}_{index:03d}_{part_fingerprint}.mp3"
+            if part_file.exists() and part_file.stat().st_size > 1024:
+                print(f"Scene {scene_number}, dialogue {index}: reusing cached audio", flush=True)
+            else:
+                print(f"Scene {scene_number}, dialogue {index}: {speaker} ({voice_id})", flush=True)
+                await asyncio.to_thread(
+                    giggy_generate, spoken_text, voice_id, part_file,
+                    f"wonder-telugu-scene-{scene_number:02d}-line-{index:03d}",
+                )
             part_files.append(part_file)
         clips = []
         combined = None
@@ -144,9 +149,6 @@ async def create_scene_audio(scene_number, segments):
                 combined.close()
             for clip in clips:
                 clip.close()
-    finally:
-        for path in part_files:
-            path.unlink(missing_ok=True)
     print(f"Saved Giggy scene audio: {output_file}", flush=True)
     return output_file
 
@@ -157,8 +159,6 @@ def main():
     print("Reading story:", content_file, flush=True)
     scenes = parse_scene_dialogue(extract_script(content_file.read_text(encoding="utf-8")))
     SCENE_AUDIO_DIR.mkdir(parents=True, exist_ok=True)
-    for old_file in SCENE_AUDIO_DIR.glob("scene_*.mp3"):
-        old_file.unlink()
     scene_files = []
     for number in range(1, SCENE_COUNT + 1):
         scene_files.append(asyncio.run(create_scene_audio(number, scenes[number])))
