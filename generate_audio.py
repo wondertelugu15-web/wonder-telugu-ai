@@ -123,32 +123,40 @@ async def create_scene_audio(scene_number, segments):
     SCENE_AUDIO_DIR.mkdir(parents=True, exist_ok=True)
     output_file = SCENE_AUDIO_DIR / f"scene_{scene_number:02d}.mp3"
     part_files = []
+
+    for index, (speaker, voice_id, spoken_text) in enumerate(segments, start=1):
+        part_fingerprint = hashlib.sha256(
+            f"{voice_id}|{spoken_text}".encode("utf-8")
+        ).hexdigest()[:16]
+        part_file = SCENE_AUDIO_DIR / f".scene_{scene_number:02d}_{index:03d}_{part_fingerprint}.mp3"
+
+        if part_file.exists() and part_file.stat().st_size > 1024:
+            print(f"Scene {scene_number}, dialogue {index}: reusing cached audio", flush=True)
+        else:
+            print(f"Scene {scene_number}, dialogue {index}: {speaker} ({voice_id})", flush=True)
+            await asyncio.to_thread(
+                giggy_generate,
+                spoken_text,
+                voice_id,
+                part_file,
+                f"wonder-telugu-scene-{scene_number:02d}-line-{index:03d}",
+            )
+        part_files.append(part_file)
+
+    clips = []
+    combined = None
     try:
-        for index, (speaker, voice_id, spoken_text) in enumerate(segments, start=1):
-            part_fingerprint = hashlib.sha256(
-                f"{voice_id}|{spoken_text}".encode("utf-8")
-            ).hexdigest()[:16]
-            part_file = SCENE_AUDIO_DIR / f".scene_{scene_number:02d}_{index:03d}_{part_fingerprint}.mp3"
-            if part_file.exists() and part_file.stat().st_size > 1024:
-                print(f"Scene {scene_number}, dialogue {index}: reusing cached audio", flush=True)
-            else:
-                print(f"Scene {scene_number}, dialogue {index}: {speaker} ({voice_id})", flush=True)
-                await asyncio.to_thread(
-                    giggy_generate, spoken_text, voice_id, part_file,
-                    f"wonder-telugu-scene-{scene_number:02d}-line-{index:03d}",
-                )
-            part_files.append(part_file)
-        clips = []
-        combined = None
-        try:
-            clips = [AudioFileClip(str(path)) for path in part_files]
-            combined = concatenate_audioclips(clips)
-            combined.write_audiofile(str(output_file), fps=24000, codec="libmp3lame", logger=None)
-        finally:
-            if combined:
-                combined.close()
-            for clip in clips:
-                clip.close()
+        clips = [AudioFileClip(str(path)) for path in part_files]
+        combined = concatenate_audioclips(clips)
+        combined.write_audiofile(
+            str(output_file), fps=24000, codec="libmp3lame", logger=None
+        )
+    finally:
+        if combined:
+            combined.close()
+        for clip in clips:
+            clip.close()
+
     print(f"Saved Giggy scene audio: {output_file}", flush=True)
     return output_file
 
