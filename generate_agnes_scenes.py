@@ -10,7 +10,7 @@ API_KEY = os.environ.get("AGNES_API_KEY")
 VIDEO_DIR = Path("assets/videos")
 POLL_SECONDS = 10
 MAX_POLLS = 90
-QUEUE_RETRY_DELAYS = (30, 60, 120, 180, 240)
+QUEUE_RETRY_DELAYS = (60, 120, 180, 300, 300, 300, 300, 300)
 
 SCENES = [
     ("agnes_01_kitchen.mp4", "A realistic Telugu grandmother in a clean, attractive South Indian home kitchen preparing ingredients for homemade tomato dal. Warm natural daylight, authentic Indian kitchen, medium camera shot, realistic human appearance and natural hand movements. No text, no subtitles, no logos."),
