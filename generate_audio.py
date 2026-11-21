@@ -40,7 +40,7 @@ def extract_script(text):
     if not match:
         raise ValueError("Content fileలో Voiceover Script section కనిపించలేదు")
     remaining = text[match.end():]
-    next_section = re.search(r"\n#{1,3}\s+|\n---", remaining)
+    next_section = re.search(r"\n##\s+|\n---", remaining)
     if next_section:
         remaining = remaining[:next_section.start()]
     return remaining.strip()
@@ -59,7 +59,7 @@ def parse_scene_dialogue(script):
         rf"^\s*(?:[-*]\s*)?(?:\*\*)?({speaker_names})(?:\*\*)?\s*[:：]\s*(.*)$",
         re.IGNORECASE,
     )
-    scene_pattern = re.compile(r"^\s*(?:\*\*)?\s*సన్నివేశం\s*(\d+)\b", re.IGNORECASE)
+    scene_pattern = re.compile(r"^\s*(?:#{1,3}\s*)?(?:\*\*)?\s*సన్నివేశం\s*(\d+)\b", re.IGNORECASE)
     scenes = {number: [] for number in range(1, SCENE_COUNT + 1)}
     current_scene = None
     for raw_line in script.splitlines():
