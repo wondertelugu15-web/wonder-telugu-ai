@@ -32,32 +32,20 @@ jobs:
       - name: Generate Telugu voice
         run: python generate_audio.py
 
-
-       - name: Normalize cooking clips for MoviePy
+      - name: Normalize cooking clips for MoviePy
         run: |
           sudo apt-get update
           sudo apt-get install -y ffmpeg
           mkdir -p /tmp/normalized
-
           for file in assets/videos/*.mp4; do
             name=$(basename "$file")
             echo "Converting $name"
-
-            ffmpeg -y -i "$file" \
-              -map 0:v:0 \
-              -an -sn -dn \
-              -c:v libx264 \
-              -preset veryfast \
-              -crf 23 \
-              -pix_fmt yuv420p \
-              -movflags +faststart \
-              "/tmp/normalized/$name"
+            ffmpeg -y -i "$file" -map 0:v:0 -an -sn -dn -c:v libx264 -preset veryfast -crf 23 -pix_fmt yuv420p -movflags +faststart "/tmp/normalized/$name"
           done
-
           cp -f /tmp/normalized/*.mp4 assets/videos/
-
-          echo "Checking converted files:"
+          echo "Checking converted file:"
           ffprobe -v error -show_entries stream=codec_name,pix_fmt,codec_type -of default=noprint_wrappers=1 assets/videos/04_spices.mp4
+
       - name: Generate cooking video
         run: python generate_video.py
 
