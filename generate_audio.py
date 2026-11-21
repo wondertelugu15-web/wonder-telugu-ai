@@ -1,4 +1,5 @@
 import asyncio
+import hashlib
 import json
 import os
 import re
@@ -84,6 +85,11 @@ def parse_scene_dialogue(script):
     return scenes
 
 def giggy_generate(text, voice_id, output_file, idempotency_key):
+    # Same exact request gets the same key on retry; changed text/voice gets a new key.
+    request_fingerprint = hashlib.sha256(
+        f"{idempotency_key}|{voice_id}|{text}".encode("utf-8")
+    ).hexdigest()
+    safe_idempotency_key = f"wonder-telugu-{request_fingerprint}"
     payload = {
         "text": text,
         "voice_id": voice_id,
@@ -99,7 +105,7 @@ def giggy_generate(text, voice_id, output_file, idempotency_key):
             "xi-api-key": API_KEY,
             "Content-Type": "application/json",
             "Accept": "audio/mpeg",
-            "Idempotency-Key": idempotency_key,
+            "Idempotency-Key": safe_idempotency_key,
         },
         method="POST",
     )
