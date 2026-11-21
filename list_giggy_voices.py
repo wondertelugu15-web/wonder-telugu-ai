@@ -6,7 +6,7 @@ import urllib.parse
 import urllib.request
 
 BASE = "https://api.giggy.ai/v1/integrations/voices"
-API_KEY = os.environ.get("GIGGY_API_KEY")
+API_KEY = os.environ.get("GIGGY_API_KEY", "").strip()
 
 if not API_KEY:
     raise SystemExit("Missing GitHub Actions secret: GIGGY_API_KEY")
