@@ -1,14 +1,21 @@
-
 name: Wonder Telugu Daily Video
 
 on:
   workflow_dispatch:
+    inputs:
+      allow_paid_generation:
+        description: "Allow paid Agnes video generation for this run (review cost first)"
+        required: true
+        type: boolean
+        default: false
 
 permissions:
   contents: read
 
 jobs:
   create-video:
+    # Paid video generation is opt-in. A normal Run workflow click cannot spend credits.
+    if: inputs.allow_paid_generation == true
     runs-on: ubuntu-latest
     timeout-minutes: 240
 
@@ -26,9 +33,10 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Generate recipe cooking scenes with Agnes AI
+      - name: Generate recipe cooking scenes from the approved story
         env:
           AGNES_API_KEY: ${{ secrets.AGNES_API_KEY }}
+          ALLOW_PAID_VIDEO_GENERATION: ${{ inputs.allow_paid_generation }}
         run: python generate_agnes_scenes.py
 
       - name: Reject demo clips
@@ -43,48 +51,35 @@ jobs:
           found = sorted(p.name for p in folder.glob("*.mp4") if p.name in demo)
           if found:
               raise SystemExit(
-                  "STOP: demo clips cannot be used for published videos: "
+                  "STOP: demo clips cannot be used in Wonder Telugu videos: "
                   + ", ".join(found)
               )
           clips = list(folder.glob("*.mp4"))
           if not clips:
               raise SystemExit(
-                  "No real AI-generated, recipe-matched clips found in assets/videos."
+                  "No real AI-generated, story-matched clips found in assets/videos."
               )
           print("Validated", len(clips), "non-demo video clips.")
           PY
 
-      - name: Generate Telugu voice
+      - name: Generate Telugu voice from the approved story
         run: python generate_audio.py
 
-      
       - name: Normalize cooking clips for MoviePy
         run: |
           sudo apt-get update
           sudo apt-get install -y ffmpeg
           mkdir -p /tmp/normalized
-
           for file in assets/videos/*.mp4; do
             name=$(basename "$file")
             echo "Converting $name"
-
             ffmpeg -y -i "$file" \
-              -map 0:v:0 \
-              -an -sn -dn \
-              -map_metadata -1 \
-              -metadata:s:v:0 timecode= \
-              -write_tmcd 0 \
-              -c:v libx264 \
-              -preset veryfast \
-              -crf 23 \
-              -pix_fmt yuv420p \
+              -map 0:v:0 -an -sn -dn -map_metadata -1 \
+              -metadata:s:v:0 timecode= -write_tmcd 0 \
+              -c:v libx264 -preset veryfast -crf 23 -pix_fmt yuv420p \
               "/tmp/normalized/$name"
           done
-
           cp -f /tmp/normalized/*.mp4 assets/videos/
-
-          echo "Checking 04_spices.mp4:"
-          ffprobe -v error -show_entries stream=codec_name,codec_type -of default=noprint_wrappers=1 assets/videos/04_spices.mp4
 
       - name: Generate cooking video
         run: python generate_video.py
