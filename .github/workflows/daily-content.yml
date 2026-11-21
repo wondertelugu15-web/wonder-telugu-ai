@@ -25,9 +25,28 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Check cooking video clips
+      - name: Reject demo clips
         run: |
-          python -c "from pathlib import Path; p=Path('assets/videos'); files=list(p.glob('*.mp4')) if p.exists() else []; print('Found',len(files),'video clips'); assert len(files)>0, 'Add cooking clips to assets/videos first'"
+          python - <<'PY'
+          from pathlib import Path
+          demo = {
+              "01_kitchen.mp4", "02_washing.mp4", "03_chopping.mp4",
+              "04_spices.mp4", "05_stirring.mp4", "06_serving.mp4"
+          }
+          folder = Path("assets/videos")
+          found = sorted(p.name for p in folder.glob("*.mp4") if p.name in demo)
+          if found:
+              raise SystemExit(
+                  "STOP: demo clips cannot be used for published videos: "
+                  + ", ".join(found)
+              )
+          clips = list(folder.glob("*.mp4"))
+          if not clips:
+              raise SystemExit(
+                  "No real AI-generated, recipe-matched clips found in assets/videos."
+              )
+          print("Validated", len(clips), "non-demo video clips.")
+          PY
 
       - name: Generate Telugu voice
         run: python generate_audio.py
