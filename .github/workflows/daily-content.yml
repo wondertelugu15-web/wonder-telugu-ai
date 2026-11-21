@@ -91,4 +91,5 @@ jobs:
           path: |
             wonder_telugu_video.mp4
             telugu_audio.mp3
+            assets/audio/scene_*.mp3
           retention-days: 7
