@@ -1,0 +1,30 @@
+name: Wonder Telugu Voice Difference Audition
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  audition:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Generate six voice auditions (Giggy Batch)
+        env:
+          GIGGY_API_KEY: ${{ secrets.GIGGY_API_KEY }}
+        run: |
+          python - <<'PY'
+          import os
+          if not os.environ.get("GIGGY_API_KEY", "").strip():
+              raise SystemExit("Missing GIGGY_API_KEY repository secret.")
+          PY
+          python voice_audition.py
+      - name: Upload audition clips
+        uses: actions/upload-artifact@v4
+        with:
+          name: wonder-telugu-voice-auditions
+          path: voice-audition/
+          retention-days: 7
