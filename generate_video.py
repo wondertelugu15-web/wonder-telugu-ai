@@ -133,6 +133,20 @@ def make_vertical(clip):
 
 
 def main():
+    sample_names = set(SCENE_FILES.values())
+    present_samples = sorted(
+        p.name for p in VIDEO_DIR.glob("*.mp4")
+        if p.name in sample_names
+    )
+    if present_samples:
+        raise RuntimeError(
+            "STOP: assets/videos contains demo/sample clips "
+            f"({', '.join(present_samples)}). "
+            "They are not allowed in published Wonder Telugu videos. "
+            "Connect a genuine AI scene-generation source and place its "
+            "recipe-matched clips in assets/videos before rendering."
+        )
+
     if not AUDIO.exists():
         raise FileNotFoundError(
             "telugu_audio.mp3 not found. Run generate_audio.py first."
