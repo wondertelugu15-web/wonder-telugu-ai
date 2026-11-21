@@ -68,7 +68,7 @@ def parse_scene_dialogue(script):
         rf"^\s*(?:[-*]\s*)?(?:\*\*)?({speaker_names})(?:\*\*)?\s*[:：]\s*(.*)$",
         re.IGNORECASE,
     )
-    scene_pattern = re.compile(r"^\s*\*?\s*సన్నివేశం\s*(\d+)\b", re.IGNORECASE)
+    scene_pattern = re.compile(r"^\s*(?:\*\*)?\s*సన్నివేశం\s*(\d+)\b", re.IGNORECASE)
     scenes = {number: [] for number in range(1, SCENE_COUNT + 1)}
     current_scene = None
     for raw_line in script.splitlines():
