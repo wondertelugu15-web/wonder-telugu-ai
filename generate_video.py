@@ -133,7 +133,10 @@ def make_vertical(clip):
 
 
 def main():
-    sample_names = {\n        "01_kitchen.mp4", "02_washing.mp4", "03_chopping.mp4",\n        "04_spices.mp4", "05_stirring.mp4", "06_serving.mp4"\n    }
+    sample_names = {
+        "01_kitchen.mp4", "02_washing.mp4", "03_chopping.mp4",
+        "04_spices.mp4", "05_stirring.mp4", "06_serving.mp4"
+    }
     present_samples = sorted(
         p.name for p in VIDEO_DIR.glob("*.mp4")
         if p.name in sample_names
