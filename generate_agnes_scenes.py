@@ -197,11 +197,26 @@ def main():
         raise RuntimeError("AGNES_API_KEY does not look like an Agnes secret key.")
 
     VIDEO_DIR.mkdir(parents=True, exist_ok=True)
-    for filename, _ in scenes:
-        (VIDEO_DIR / filename).unlink(missing_ok=True)
 
     for filename, prompt in scenes:
+        target = VIDEO_DIR / filename
+        if target.exists() and target.stat().st_size >= 100_000:
+            print(
+                f"Reusing completed scene {target} "
+                f"({target.stat().st_size} bytes); skipping paid generation.",
+                flush=True,
+            )
+            continue
+        target.unlink(missing_ok=True)
         create_and_download(filename, prompt)
+
+    missing = [
+        filename for filename, _ in scenes
+        if not (VIDEO_DIR / filename).exists()
+        or (VIDEO_DIR / filename).stat().st_size < 100_000
+    ]
+    if missing:
+        raise RuntimeError("Scenes still missing after generation: " + ", ".join(missing))
 
 
 if __name__ == "__main__":
