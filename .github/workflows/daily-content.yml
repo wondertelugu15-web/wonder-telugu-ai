@@ -40,11 +40,26 @@ jobs:
           GIGGY_API_KEY: ${{ secrets.GIGGY_API_KEY }}
         run: python generate_audio.py
 
+      - name: Restore completed Agnes scenes for this story
+        uses: actions/cache/restore@v4
+        with:
+          path: assets/videos/agnes_*.mp4
+          key: ${{ runner.os }}-agnes-${{ hashFiles('content/*.md') }}-${{ github.run_id }}
+          restore-keys: |
+            ${{ runner.os }}-agnes-${{ hashFiles('content/*.md') }}-
+
       - name: Generate recipe cooking scenes from the approved story
         env:
           AGNES_API_KEY: ${{ secrets.AGNES_API_KEY }}
           ALLOW_PAID_VIDEO_GENERATION: ${{ inputs.allow_paid_generation }}
         run: python generate_agnes_scenes.py
+
+      - name: Save completed Agnes scenes, including partial runs
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: assets/videos/agnes_*.mp4
+          key: ${{ runner.os }}-agnes-${{ hashFiles('content/*.md') }}-${{ github.run_id }}
 
       - name: Reject demo clips
         run: |
