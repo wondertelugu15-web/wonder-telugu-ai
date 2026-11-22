@@ -13,8 +13,8 @@ CONTENT_DIR = Path("content")
 VIDEO_DIR = Path("assets/videos")
 POLL_SECONDS = 10
 MAX_POLLS = 90
-# Agnes queue-full is a provider-side transient condition. Wait up to 2 hours.
-QUEUE_RETRY_DELAYS = (300,) * 24
+# Fail fast when the provider queue is unavailable; completed scenes are cached.
+QUEUE_RETRY_DELAYS = (60, 60, 60)
 
 SCENE_FILENAMES = (
     "agnes_01_kitchen.mp4",
