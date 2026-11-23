@@ -1,114 +1,38 @@
-name: Wonder Telugu Daily Video
+name: Wonder Telugu Replicate Test
 
 on:
   workflow_dispatch:
-    inputs:
-      allow_paid_generation:
-        description: "Allow paid Agnes video generation for this run (review cost first)"
-        required: true
-        type: boolean
-        default: false
 
 permissions:
   contents: read
 
 jobs:
-  create-video:
-    # Paid video generation is opt-in. A normal Run workflow click cannot spend credits.
-    if: inputs.allow_paid_generation == true
+  replicate-test:
     runs-on: ubuntu-latest
-    timeout-minutes: 240
-
+    timeout-minutes: 45
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.11"
-
+          python-version: '3.11'
       - name: Install packages
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
-
-      # Build and validate the character dialogue audio first. If the TTS
-      # secret or voice service is unavailable, fail before any paid video call.
       - name: Generate Telugu character voices
         env:
           GIGGY_API_KEY: ${{ secrets.GIGGY_API_KEY }}
         run: python generate_audio.py
-
-      - name: Restore completed Agnes scenes for this story
-        uses: actions/cache/restore@v4
-        with:
-          path: assets/videos/agnes_*.mp4
-          key: ${{ runner.os }}-agnes-${{ hashFiles('content/*.md') }}-${{ github.run_id }}
-          restore-keys: |
-            ${{ runner.os }}-agnes-${{ hashFiles('content/*.md') }}-
-
-      - name: Generate recipe cooking scenes from the approved story
+      - name: Generate one capped Replicate test scene
         env:
-          AGNES_API_KEY: ${{ secrets.AGNES_API_KEY }}
-          ALLOW_PAID_VIDEO_GENERATION: ${{ inputs.allow_paid_generation }}
-        run: python generate_agnes_scenes.py
-
-      - name: Save completed Agnes scenes, including partial runs
-        if: always()
-        uses: actions/cache/save@v4
-        with:
-          path: assets/videos/agnes_*.mp4
-          key: ${{ runner.os }}-agnes-${{ hashFiles('content/*.md') }}-${{ github.run_id }}
-
-      - name: Reject demo clips
-        run: |
-          python - <<'PY'
-          from pathlib import Path
-          demo = {
-              "01_kitchen.mp4", "02_washing.mp4", "03_chopping.mp4",
-              "04_spices.mp4", "05_stirring.mp4", "06_serving.mp4"
-          }
-          folder = Path("assets/videos")
-          found = sorted(p.name for p in folder.glob("*.mp4") if p.name in demo)
-          if found:
-              raise SystemExit(
-                  "STOP: demo clips cannot be used in Wonder Telugu videos: "
-                  + ", ".join(found)
-              )
-          clips = list(folder.glob("*.mp4"))
-          if not clips:
-              raise SystemExit(
-                  "No real AI-generated, story-matched clips found in assets/videos."
-              )
-          print("Validated", len(clips), "non-demo video clips.")
-          PY
-
-      - name: Normalize cooking clips for MoviePy
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y ffmpeg
-          mkdir -p /tmp/normalized
-          for file in assets/videos/*.mp4; do
-            name=$(basename "$file")
-            echo "Converting $name"
-            ffmpeg -y -i "$file" \
-              -map 0:v:0 -an -sn -dn -map_metadata -1 \
-              -metadata:s:v:0 timecode= -write_tmcd 0 \
-              -c:v libx264 -preset veryfast -crf 23 -pix_fmt yuv420p \
-              "/tmp/normalized/$name"
-          done
-          cp -f /tmp/normalized/*.mp4 assets/videos/
-
-      - name: Generate cooking video
-        run: python generate_video.py
-
-      - name: Save generated video
+          REPLICATE_API_TOKEN: ${{ secrets.REPLICATE_API_TOKEN }}
+        run: python generate_replicate_test.py
+      - name: Save test video
         uses: actions/upload-artifact@v4
         with:
-          name: wonder-telugu-video
-          path: |
-            wonder_telugu_video.mp4
-            telugu_audio.mp3
-            assets/audio/scene_*.mp3
+          name: wonder-telugu-replicate-test
+          path: replicate_test_scene.mp4
+          if-no-files-found: error
           retention-days: 7
