@@ -5,7 +5,7 @@ from pathlib import Path
 import replicate
 from moviepy import AudioFileClip
 
-IMAGE = Path("assets/characters/mother_in_law.jpg")
+IMAGE = Path("assets/characters/family_reference_01.jpg")
 AUDIO_DIR = Path("assets/audio")
 OUTPUT = Path("replicate_test_scene.mp4")
 MODEL = "wan-video/wan-2.2-s2v"
@@ -17,11 +17,11 @@ def main():
     if not os.environ.get("REPLICATE_API_TOKEN", "").strip():
         raise RuntimeError("Missing GitHub Secret: REPLICATE_API_TOKEN")
     if not IMAGE.is_file():
-        raise FileNotFoundError("Add the approved mother-in-law reference image at " + str(IMAGE))
+        raise FileNotFoundError(Add the approved family reference image at  + str(IMAGE))
     fingerprint = hashlib.sha256((VOICE_ID + '|' + DIALOGUE).encode('utf-8')).hexdigest()[:16]
-    audio_path = AUDIO_DIR / (".scene_01_001_" + fingerprint + ".mp3")
+    audio_path = AUDIO_DIR / "scene_01.mp3"
     if not audio_path.is_file():
-        raise FileNotFoundError("Expected mother-in-law dialogue audio not found: " + str(audio_path))
+        raise FileNotFoundError("Expected first-scene dialogue audio not found: " + str(audio_path))
     with AudioFileClip(str(audio_path)) as clip:
         duration = clip.duration
     if duration <= 0 or duration > MAX_SECONDS:
@@ -31,7 +31,7 @@ def main():
         result = replicate.run(MODEL, input={
             'image': image_file,
             'audio': audio_file,
-            'prompt': 'A middle-aged Telugu mother-in-law wearing a maroon sari speaks naturally in a warm South Indian home kitchen. Preserve the distinct face in the reference image. Natural subtle facial motion, realistic appearance, vertical portrait composition.',
+            'prompt': 'A Telugu family in a warm South Indian home kitchen having a natural conversation. Preserve the faces and clothing from the family reference image. Subtle realistic facial and head movement, natural expressions, vertical portrait composition.',
             'num_frames_per_chunk': 81,
             'interpolate': False,
         })
