@@ -21,7 +21,7 @@ Create and save separate reference images/elements for each role. Do not combine
 Keep face shape, hairstyle, saree palette, jewellery and age unchanged in every shot. These are fictional original characters.
 
 ### Shot prompt
-Inside a clean traditional Telugu village kitchen in the morning. The mother-in-law stands near the kitchen doorway, turns toward the younger daughter-in-law and speaks with a mildly stern expression. The younger daughter-in-law is beside the cooking counter, pauses her work, looks up respectfully and answers. The older woman listens after her line; the younger woman listens after hers. Natural eye contact, subtle head movement, believable hand gestures, stable camera, medium two-shot, realistic human motion. No extra people, no face morphing, no jump cuts, no subtitles or text, no background music.
+Inside a clean traditional Telugu village kitchen in the morning. The mother-in-law stands near the kitchen doorway, turns toward the younger daughter-in-law and speaks with a mildly stern expression. The younger daughter-in-law is beside the cooking counter, pauses her work, looks up respectfully and answers. The older woman listens after her line; the younger woman listens after hers. Natural eye contact, subtle head movement, believable hand gestures, stable camera, medium two-shot, realistic human motion. No extra people, no face morphing, no rural exterior, no luxury showroom, no unrelated B-roll, no subtitles or text, no background music.
 
 ### Telugu dialogue for external audio / lip-sync test
 అత్తయ్య: ఏమే చిన్న కోడలా! ఇంకా వంట మొదలుపెట్టలేదా?
