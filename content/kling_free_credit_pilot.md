@@ -16,7 +16,7 @@ Look: photorealistic Telugu/Andhra urban joint-family drama in a modern Hyderaba
 
 ### Character continuity references
 Create and save separate reference images/elements for each role. Do not combine characters into one reference.
-- అత్తయ్య: Telugu woman, age 40–50, mature warm face, neatly tied dark hair with a few natural grey strands, elegant contemporary cotton saree suitable for an urban Hyderabad family, small bindi, calm but stern expression.
+- అత్తయ్య: Telugu woman, age 40–50, mature warm face, neatly tied dark hair with a few natural grey strands, everyday elegant Indian saree in the same grounded style as the reference video, small bindi, calm but stern expression.
 - చిన్న కోడలు: Telugu woman, age 25–33, clearly different face from mother-in-law, long dark hair neatly braided, modest contrasting cotton saree, small bindi, respectful but confident expression.
 Keep face shape, hairstyle, saree palette, jewellery and age unchanged in every shot. These are fictional original characters.
 
