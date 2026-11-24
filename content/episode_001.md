@@ -54,7 +54,7 @@ Target duration: approximately 2 minutes. Format: 9:16 vertical. Original Telugu
 
 ## Scene-by-scene video prompts
 ### Scene 1: Kitchen disagreement
-Medium and close shots in a modern, clean Hyderabad apartment modular kitchen. Mother-in-law turns toward younger daughter-in-law and speaks sternly. Younger daughter-in-law pauses, looks up and replies respectfully. Older daughter-in-law listens and reacts. Correct speaker-only Telugu lip-sync.
+Medium and close shots in a modest, clean contemporary Indian apartment kitchen matching the uploaded reference video. Mother-in-law turns toward younger daughter-in-law and speaks sternly. Younger daughter-in-law pauses, looks up and replies respectfully. Older daughter-in-law listens and reacts. Correct speaker-only Telugu lip-sync.
 
 ### Scene 2: Support
 Older daughter-in-law steps beside the younger one and supports her calmly. Mother-in-law turns toward her. Younger daughter-in-law resumes food preparation. Natural eye-lines and distinct speaking turns.
