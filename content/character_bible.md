@@ -15,10 +15,20 @@ The user's uploaded reference MP4s are the visual authority. Match their look ra
 - Do not change the style to an upscale luxury apartment, rural village, western outfits, glossy fashion shoot, or generic stock footage.
 - Reference is for visual style only; create original characters and original story/dialogue, do not copy the exact people or reproduce the sample video.
 
+## Exact uploaded video reference: The Ultimate Sunday Kitchen Cook-Off
+Use the newly uploaded 10-second vertical kitchen video as the primary visual reference. Its visible style:
+- Vertical 9:16, warm indoor light, medium/full-body group framing and waist-up cooking close-ups; realistic Indian family-drama short-video look.
+- A practical, neat home kitchen with warm beige/brown cabinets, open shelves, jars and cooking utensils. It is a normal lived-in Indian kitchen, not a rural hut and not a glossy luxury showroom.
+- Three women appear together: middle-aged mother-in-law in a deep green saree with red-and-gold border; young woman in a mustard-yellow kurta with long braid; another young woman in a deep magenta/maroon kurta. Keep these wardrobe colours and role distinction for this pilot unless the story explicitly changes clothes.
+- Mother-in-law stands in front and speaks/gestures; the two younger women stand behind/to the sides and react. Then cut to close-ups of each young woman actively stirring food in a pan, followed by all three tasting/looking at the dishes together.
+- Show real cooking action and food close-ups: spoon/stirring, pan on stove, plated dishes, tasting and facial reactions. Keep hands, utensils and food physically coherent.
+- Natural expressive faces and family interaction, warm cinematic lighting, simple camera cuts, stable identities. Do not turn it into a village, outdoor courtyard, ultra-modern luxury kitchen, fashion shoot or western setting.
+- Use this as a visual style reference only. Create original fictional people, story and dialogue; do not recreate the exact source people or copy the clip shot-for-shot.
+
 ## Identity lock — keep unchanged across episodes
-- అత్తయ్య: woman, age 40–50; middle-aged Telugu mother-in-law with the expressive look and green saree styling seen in the reference video; neat cotton sarees; expressive but natural face; mature female voice.
-- పెద్ద కోడలు: woman, age 25–33; neat traditional saree; confident, warm expression; distinct young-adult female voice.
-- చిన్న కోడలు: woman, age 25–33; different face, hairstyle and saree palette from పెద్ద కోడలు; lively but grounded expression; a separate young-adult female voice.
+- అత్తయ్య: woman, age 40–50; middle-aged Telugu mother-in-law; deep green saree with red-and-gold border for pilot; expressive, authoritative but caring face; mature female voice.n, age 40–50; middle-aged Telugu mother-in-law with the expressive look and green saree styling seen in the reference video; neat cotton sarees; expressive but natural face; mature female voice.
+- పెద్ద కోడలు: woman, age 25–33; distinct face; mustard-yellow kurta with long braid for pilot; warm young-adult female voice.n, age 25–33; neat traditional saree; confident, warm expression; distinct young-adult female voice.
+- చిన్న కోడలు: woman, age 25–33; distinct face from elder daughter-in-law; deep magenta/maroon kurta for pilot; separate young-adult female voice.n, age 25–33; different face, hairstyle and saree palette from పెద్ద కోడలు; lively but grounded expression; a separate young-adult female voice.
 - పెద్ద కొడుకు: man, age 30–35; clean traditional shirt and dhoti; distinct adult male face and voice.
 - చిన్న కొడుకు: man, age 30–35; visibly different face and styling from elder brother; separate adult male voice.
 - మామయ్య: man, age 50–60; dignified urban family elder; neat shirt and dhoti; mature, calm male voice.
@@ -26,7 +36,7 @@ The user's uploaded reference MP4s are the visual authority. Match their look ra
 
 ## Visual and acting rules
 1. Lock face reference, hair, age, clothing palette and voice identity for every returning character. Never randomly redesign a character.
-2. Photorealistic humans, clear eyes/hands/facial anatomy, modest, clean, contemporary Indian apartment kitchen and adjoining home interior matching the uploaded reference video; not a luxury showroom and not a rural setting.
+2. Photorealistic humans, clear eyes/hands/facial anatomy, normal neat lived-in Indian home kitchen with warm beige/brown cabinets, open shelves, jars and utensils, matching the uploaded video; neither rural hut nor luxury showroom.
 3. Every Telugu line must match the visible speaker's mouth movement. Only the active speaker talks; listeners show natural reactions.
 4. Show motivated actions: turning, walking, cooking, serving, looking, pausing, smiling and responding. No frozen slideshow, generic loops or unrelated B-roll.
 5. Maintain continuity of props, food, sarees, jewellery, room layout and screen direction.
