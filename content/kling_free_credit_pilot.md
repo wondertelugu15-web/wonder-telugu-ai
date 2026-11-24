@@ -12,11 +12,11 @@ Purpose: test one short scene before spending money. Do not generate a full 2-mi
 Episode: చిన్న కోడలి వంట, అత్తయ్య కోపం
 Duration target for this test: 5–10 seconds
 Aspect ratio: 9:16 vertical
-Look: photorealistic Telugu/Andhra village family drama, natural cinematic lighting, clean traditional kitchen, realistic skin texture, anatomically correct hands and faces, restrained natural acting.
+Look: photorealistic Telugu/Andhra urban joint-family drama in a modern Hyderabad apartment, natural cinematic lighting, elegant modular kitchen, realistic skin texture, anatomically correct hands and faces, restrained natural acting.
 
 ### Character continuity references
 Create and save separate reference images/elements for each role. Do not combine characters into one reference.
-- అత్తయ్య: Telugu woman, age 40–50, mature warm face, neatly tied dark hair with a few natural grey strands, simple elegant cotton saree, small bindi, calm but stern expression.
+- అత్తయ్య: Telugu woman, age 40–50, mature warm face, neatly tied dark hair with a few natural grey strands, elegant contemporary cotton saree suitable for an urban Hyderabad family, small bindi, calm but stern expression.
 - చిన్న కోడలు: Telugu woman, age 25–33, clearly different face from mother-in-law, long dark hair neatly braided, modest contrasting cotton saree, small bindi, respectful but confident expression.
 Keep face shape, hairstyle, saree palette, jewellery and age unchanged in every shot. These are fictional original characters.
 
