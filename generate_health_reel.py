@@ -10,7 +10,7 @@ from PIL import Image, ImageDraw, ImageFont, ImageFilter
 from moviepy import AudioFileClip, ImageSequenceClip, concatenate_videoclips
 import edge_tts
 
-W, H, FPS = 720, 1280, 15
+W, H, FPS = 540, 960, 15
 OUT = Path("wonder_telugu_health_reel.mp4")
 ASSET = Path("build/health_reel")
 AUDIO = ASSET / "audio"
@@ -120,7 +120,7 @@ def make_frame(title, dialogue, kind, t):
     d=ImageDraw.Draw(im)
     # top label
     d.rounded_rectangle((36,42,W-36,145), radius=28, fill=(50,35,31,195), outline=(255,255,255,80), width=2)
-    tf=font(42)
+    tf=font(34)
     lines=wrap_text(d,title,tf,W-100)
     y=64
     for line in lines[:2]:
@@ -129,14 +129,14 @@ def make_frame(title, dialogue, kind, t):
         y+=52
     # dialogue subtitle panel
     d.rounded_rectangle((34,1010,W-34,1215), radius=30, fill=(30,24,22,220))
-    sf=font(32)
+    sf=font(26)
     lines=wrap_text(d,dialogue,sf,W-100)
     y=1045
     for line in lines[:4]:
         box=d.textbbox((0,0),line,font=sf)
         d.text(((W-(box[2]-box[0]))//2,y),line,font=sf,fill=(255,255,255,255))
         y+=43
-    d.text((38,1230),"Wonder Telugu • ఆరోగ్య సమాచారం",font=font(20),fill=(255,255,255,220))
+    d.text((38,1230),"Wonder Telugu • ఆరోగ్య సమాచారం",font=font(16),fill=(255,255,255,220))
     return im.convert("RGB")
 
 async def make_audio(index, text, path):
