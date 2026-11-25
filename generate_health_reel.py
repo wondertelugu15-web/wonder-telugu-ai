@@ -1,180 +1,109 @@
 from __future__ import annotations
-
-import asyncio
-import math
-import os
-import subprocess
+import asyncio, math
 from pathlib import Path
-
+import numpy as np
 from PIL import Image, ImageDraw, ImageFont, ImageFilter
 from moviepy import AudioFileClip, ImageSequenceClip, concatenate_videoclips
 import edge_tts
 
-W, H, FPS = 540, 960, 15
-OUT = Path("wonder_telugu_health_reel.mp4")
-ASSET = Path("build/health_reel")
-AUDIO = ASSET / "audio"
-FRAMES = ASSET / "frames"
-VOICE = os.getenv("TELUGU_VOICE", "te-IN-ShrutiNeural")
-
-SCENES = [
-    ("చర్మం పొడిబారుతోందా?", "అయ్యో! నా చర్మం చాలా పొడిగా మారిపోయింది. ఏం చేయాలి?", "dry"),
-    ("చర్మానికి తేమ అవసరం", "చర్మం పొడిగా ఉన్నప్పుడు మృదువైన మాయిశ్చరైజర్ ఉపయోగపడుతుంది.", "skin"),
-    ("షియా బట్టర్ ఏమి చేస్తుంది?", "షియా బట్టర్ చర్మంలో తేమ నిలవడానికి సహాయపడే మాయిశ్చరైజర్ పదార్థం.", "butter"),
-    ("చిన్న జాగ్రత్త", "కొత్త ఉత్పత్తి వాడే ముందు చిన్న భాగంలో పరీక్షించండి. మంట లేదా దురద వస్తే ఆపండి.", "care"),
-    ("ఎప్పుడు డాక్టర్‌ను కలవాలి?", "పొడిబారడం, దురద లేదా పగుళ్లు తగ్గకపోతే చర్మ వైద్యుడిని సంప్రదించండి.", "doctor"),
-    ("చర్మ సంరక్షణ గుర్తుంచుకోండి", "ఈ సమాచారం ఉపయోగపడితే Wonder Teluguని ఫాలో అవ్వండి. ఆరోగ్యంగా ఉండండి!", "happy"),
+W,H,FPS=540,960,15
+OUT=Path("wonder_telugu_health_reel.mp4")
+AUDIO=Path("build/health_reel/audio")
+VOICE="te-IN-ShrutiNeural"
+SCENES=[
+("చర్మం పొడిబారుతోందా?","అయ్యో! నా చర్మం చాలా పొడిగా మారిపోయింది. ఏం చేయాలి?","dry"),
+("చర్మానికి తేమ అవసరం","చర్మం పొడిగా ఉన్నప్పుడు మృదువైన మాయిశ్చరైజర్ ఉపయోగపడుతుంది.","skin"),
+("షియా బట్టర్ ఏమి చేస్తుంది?","షియా బట్టర్ చర్మంలో తేమ నిలవడానికి సహాయపడే పదార్థం.","butter"),
+("ముందుగా పరీక్షించండి","కొత్త ఉత్పత్తిని చిన్న భాగంలో పరీక్షించండి. మంట లేదా దురద వస్తే వాడటం ఆపండి.","care"),
+("ఎప్పుడు డాక్టర్‌ను కలవాలి?","పొడిబారడం, దురద లేదా పగుళ్లు తగ్గకపోతే చర్మ వైద్యుడిని సంప్రదించండి.","doctor"),
+("చర్మ సంరక్షణ గుర్తుంచుకోండి","ఈ సమాచారం ఉపయోగపడితే Wonder Teluguని ఫాలో అవ్వండి. ఆరోగ్యంగా ఉండండి!","happy"),
 ]
-
-def font(size: int):
-    candidates = [
-        "/usr/share/fonts/truetype/noto/NotoSansTelugu-Regular.ttf",
-        "/usr/share/fonts/truetype/noto/NotoSansTeluguUI-Regular.ttf",
-        "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
-    ]
-    for item in candidates:
-        if Path(item).exists():
-            return ImageFont.truetype(item, size)
+def font(n):
+    for p in ["/usr/share/fonts/truetype/noto/NotoSansTelugu-Regular.ttf","/usr/share/fonts/truetype/noto/NotoSansTeluguUI-Regular.ttf","/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"]:
+        if Path(p).exists(): return ImageFont.truetype(p,n)
     return ImageFont.load_default()
-
-def gradient_bg(kind: str):
-    im = Image.new("RGB", (W, H))
-    px = im.load()
-    top = (190, 112, 83) if kind in ("dry", "skin") else (210, 154, 105)
-    bottom = (245, 202, 160)
-    for y in range(H):
-        t = y / (H - 1)
-        c = tuple(int(top[i] * (1-t) + bottom[i] * t) for i in range(3))
-        for x in range(W):
-            px[x, y] = c
-    # soft skin-like rounded texture
-    overlay = Image.new("RGBA", (W, H), (0,0,0,0))
-    d = ImageDraw.Draw(overlay)
-    for i in range(16):
-        x = (i * 173) % W
-        y = (i * 251) % H
-        d.ellipse((x-100,y-55,x+100,y+55), fill=(255,220,190,22))
-    overlay = overlay.filter(ImageFilter.GaussianBlur(35))
-    return Image.alpha_composite(im.convert("RGBA"), overlay)
-
-def draw_mascot(im, kind, t):
-    d = ImageDraw.Draw(im)
-    cx, cy = W//2, 690 + int(math.sin(t*4)*12)
-    # soft shadow
-    d.ellipse((cx-155,cy+175,cx+155,cy+225), fill=(90,45,35,70))
-    if kind == "butter":
-        # butter dollop mascot
-        d.ellipse((cx-135,cy-110,cx+135,cy+150), fill=(255,219,105,255), outline=(189,129,43,255), width=8)
-        d.ellipse((cx-95,cy-140,cx+75,cy+35), fill=(255,238,166,255))
-        body=(255,215,92,255)
-    elif kind == "dry":
-        # cracked dry-skin creature
-        d.rounded_rectangle((cx-130,cy-125,cx+130,cy+145), radius=85, fill=(166,79,65,255), outline=(105,48,45,255), width=9)
-        for dx in [-65,0,70]:
-            d.line((cx+dx,cy-90,cx+dx-18,cy-35,cx+dx+12,cy+10), fill=(95,45,42,255), width=8)
-        body=(166,79,65,255)
-    elif kind == "happy":
-        d.ellipse((cx-140,cy-130,cx+140,cy+150), fill=(255,178,75,255), outline=(176,94,45,255), width=8)
-        body=(255,178,75,255)
-    else:
-        d.ellipse((cx-135,cy-125,cx+135,cy+145), fill=(238,147,108,255), outline=(155,78,61,255), width=8)
-        body=(238,147,108,255)
-    # glossy highlight
-    d.ellipse((cx-88,cy-95,cx-30,cy-45), fill=(255,255,255,95))
-    # eyes
-    blink = (int(t*2) % 7 == 0)
-    for ex in [cx-48,cx+48]:
-        if blink:
-            d.arc((ex-19,cy-25,ex+19,cy+8), 10,170, fill=(55,38,35,255), width=7)
+def background(kind):
+    palettes={"dry":((112,57,49),(222,151,119)),"skin":((125,69,52),(230,174,140)),"butter":((110,66,38),(235,187,112)),"care":((99,62,47),(221,165,126)),"doctor":((82,61,54),(207,163,139)),"happy":((104,65,42),(235,182,116))}
+    a,b=palettes[kind]; yy,xx=np.mgrid[0:H,0:W]; yy=yy/H
+    arr=np.zeros((H,W,3),dtype=np.uint8)
+    for c in range(3): arr[:,:,c]=(a[c]*(1-yy)+b[c]*yy).astype(np.uint8)
+    dist=((xx-W*.5)/(W*.75))**2+((yy*H-H*.55)/(H*.8))**2
+    arr=np.clip(arr.astype(float)+(np.exp(-dist*2.4)*23-dist*12)[:,:,None],0,255).astype(np.uint8)
+    im=Image.fromarray(arr).convert("RGBA")
+    tex=Image.new("RGBA",(W,H),(0,0,0,0)); d=ImageDraw.Draw(tex)
+    for k in range(80):
+        x=(k*97+31)%W; y=(k*173+71)%H; r=3+k%9
+        d.ellipse((x-r,y-r,x+r,y+r),fill=(255,211,185,10))
+    return Image.alpha_composite(im,tex.filter(ImageFilter.GaussianBlur(5)))
+def sphere(d,cx,cy,rx,ry,base,outline):
+    d.ellipse((cx-rx,cy-ry,cx+rx,cy+ry),fill=base,outline=outline,width=5)
+    d.ellipse((cx-rx*.68,cy-ry*.82,cx+rx*.45,cy+ry*.12),fill=(255,255,255,48))
+    d.ellipse((cx-rx*.75,cy+ry*.42,cx+rx*.8,cy+ry*1.02),fill=(55,25,20,28))
+def mascot(im,kind,t):
+    d=ImageDraw.Draw(im); cx=W//2; cy=565+int(7*math.sin(t*2.8))
+    d.ellipse((cx-155,cy+155,cx+155,cy+204),fill=(42,24,20,80))
+    colors={"dry":(164,83,67,255),"skin":(227,151,115,255),"butter":(246,199,91,255),"care":(222,147,102,255),"doctor":(213,151,117,255),"happy":(241,169,74,255)}
+    base=colors[kind]; sphere(d,cx,cy,132,142,base,(112,62,48,255))
+    wave=int(12*math.sin(t*3.2))
+    for s in (-1,1):
+        ax=cx+s*119; hx=cx+s*(187+wave)
+        d.line((ax,cy+42,hx,cy-8),fill=base,width=25)
+        d.ellipse((hx-17,cy-26,hx+17,cy+10),fill=base)
+    blink=int(t*2.1)%9==0
+    for ex in (cx-48,cx+48):
+        if blink: d.arc((ex-18,cy-34,ex+18,cy+8),5,175,fill=(54,34,30,255),width=7)
         else:
-            d.ellipse((ex-19,cy-35,ex+19,cy+12), fill=(255,255,255,255))
-            d.ellipse((ex-8,cy-24,ex+9,cy+6), fill=(38,35,32,255))
-            d.ellipse((ex-3,cy-22,ex+3,cy-15), fill=(255,255,255,255))
-    # mouth and cheeks
-    d.arc((cx-34,cy+18,cx+34,cy+75), 10,170, fill=(75,35,35,255), width=7)
-    d.ellipse((cx-105,cy+15,cx-72,cy+39), fill=(255,130,130,110))
-    d.ellipse((cx+72,cy+15,cx+105,cy+39), fill=(255,130,130,110))
-    # tiny arms
-    arm_y=cy+40
-    d.line((cx-120,arm_y,cx-190,arm_y-35-int(8*math.sin(t*4))), fill=body, width=24)
-    d.ellipse((cx-205,arm_y-55-int(8*math.sin(t*4)),cx-170,arm_y-20-int(8*math.sin(t*4))), fill=body)
-    d.line((cx+120,arm_y,cx+190,arm_y-35+int(8*math.sin(t*4))), fill=body, width=24)
-    d.ellipse((cx+170,arm_y-55+int(8*math.sin(t*4)),cx+205,arm_y-20+int(8*math.sin(t*4))), fill=body)
-
-def wrap_text(draw, text, fnt, max_width):
-    words=text.split()
-    lines=[]; cur=""
-    for word in words:
-        test=(cur+" "+word).strip()
-        if draw.textbbox((0,0),test,font=fnt)[2] <= max_width:
-            cur=test
+            d.ellipse((ex-20,cy-40,ex+20,cy+12),fill="white")
+            d.ellipse((ex-9,cy-27,ex+10,cy+7),fill=(35,30,28,255))
+            d.ellipse((ex-5,cy-25,ex+1,cy-18),fill="white")
+    if int(t*5)%3==0: d.ellipse((cx-23,cy+35,cx+23,cy+68),fill=(91,39,38,255))
+    else: d.arc((cx-34,cy+30,cx+34,cy+76),5,175,fill=(91,39,38,255),width=7)
+    d.ellipse((cx-104,cy+17,cx-72,cy+39),fill=(255,119,124,105)); d.ellipse((cx+72,cy+17,cx+104,cy+39),fill=(255,119,124,105))
+    if kind=="dry":
+        for dx in (-60,15,62): d.line((cx+dx,cy-91,cx+dx-14,cy-49,cx+dx+8,cy-15),fill=(103,48,43,220),width=5)
+    if kind=="butter": d.arc((cx-68,cy-88,cx+66,cy+38),190,500,fill=(255,244,198,220),width=10)
+def wrap(d,text,fnt,maxw):
+    lines=[]; line=""
+    for word in text.split():
+        trial=(line+" "+word).strip()
+        if d.textbbox((0,0),trial,font=fnt)[2]<=maxw: line=trial
         else:
-            if cur: lines.append(cur)
-            cur=word
-    if cur: lines.append(cur)
+            if line: lines.append(line)
+            line=word
+    if line: lines.append(line)
     return lines
-
-def make_frame(title, dialogue, kind, t):
-    im=gradient_bg(kind)
-    draw_mascot(im,kind,t)
-    d=ImageDraw.Draw(im)
-    # top label
-    d.rounded_rectangle((36,42,W-36,145), radius=28, fill=(50,35,31,195), outline=(255,255,255,80), width=2)
-    tf=font(34)
-    lines=wrap_text(d,title,tf,W-100)
-    y=64
-    for line in lines[:2]:
-        box=d.textbbox((0,0),line,font=tf)
-        d.text(((W-(box[2]-box[0]))//2,y),line,font=tf,fill=(255,255,255,255),stroke_width=1,stroke_fill=(40,20,20,255))
-        y+=52
-    # dialogue subtitle panel
-    d.rounded_rectangle((34,1010,W-34,1215), radius=30, fill=(30,24,22,220))
-    sf=font(26)
-    lines=wrap_text(d,dialogue,sf,W-100)
-    y=1045
-    for line in lines[:4]:
-        box=d.textbbox((0,0),line,font=sf)
-        d.text(((W-(box[2]-box[0]))//2,y),line,font=sf,fill=(255,255,255,255))
-        y+=43
-    d.text((38,1230),"Wonder Telugu • ఆరోగ్య సమాచారం",font=font(16),fill=(255,255,255,220))
+def frame(title,dialogue,kind,t):
+    im=background(kind); mascot(im,kind,t); d=ImageDraw.Draw(im)
+    d.rounded_rectangle((28,32,W-28,133),radius=25,fill=(37,25,23,220),outline=(255,232,216,160),width=2)
+    tf=font(29); y=52
+    for line in wrap(d,title,tf,W-78)[:2]:
+        bb=d.textbbox((0,0),line,font=tf); d.text(((W-(bb[2]-bb[0]))//2,y),line,font=tf,fill="white",stroke_width=1,stroke_fill=(40,20,18)); y+=39
+    d.rounded_rectangle((25,758,W-25,900),radius=24,fill=(30,23,21,228),outline=(255,255,255,70),width=2)
+    sf=font(23); y=778
+    for line in wrap(d,dialogue,sf,W-70)[:3]:
+        bb=d.textbbox((0,0),line,font=sf); d.text(((W-(bb[2]-bb[0]))//2,y),line,font=sf,fill="white"); y+=34
+    d.text((W-245,920),"WONDER TELUGU  •  HEALTH TIPS",font=font(13),fill=(255,245,236,220))
     return im.convert("RGB")
-
-async def make_audio(index, text, path):
-    if path.exists() and path.stat().st_size > 1000:
-        return
-    communicate=edge_tts.Communicate(text, VOICE, rate="+0%")
-    await communicate.save(str(path))
-
+async def audio(text,path):
+    if path.exists() and path.stat().st_size>1000: return
+    await edge_tts.Communicate(text,VOICE,rate="+0%").save(str(path))
 def main():
-    ASSET.mkdir(parents=True,exist_ok=True); AUDIO.mkdir(parents=True,exist_ok=True); FRAMES.mkdir(parents=True,exist_ok=True)
-    audio_paths=[]
-    for i,(_,dialogue,_) in enumerate(SCENES,1):
-        p=AUDIO/f"scene_{i:02d}.mp3"
-        asyncio.run(make_audio(i,dialogue,p))
-        audio_paths.append(p)
-    clips=[]; audios=[]
+    AUDIO.mkdir(parents=True,exist_ok=True); clips=[]; audios=[]
     try:
-        for i,(title,dialogue,kind) in enumerate(SCENES,1):
-            audio=AudioFileClip(str(audio_paths[i-1])); audios.append(audio)
-            duration=max(4.5,audio.duration+0.4)
-            frame_list=[]
-            count=max(1,int(duration*FPS))
-            for j in range(count):
-                frame=make_frame(title,dialogue,kind,j/FPS)
-                frame_list.append(__import__("numpy").array(frame))
-            clip=ImageSequenceClip(frame_list,fps=FPS).with_duration(duration).with_audio(audio)
-            clips.append(clip)
+        for i,scene in enumerate(SCENES,1):
+            ap=AUDIO/f"scene_{i:02d}.mp3"; asyncio.run(audio(scene[1],ap))
+            a=AudioFileClip(str(ap)); audios.append(a); duration=max(4.5,a.duration+.35); frames=[]
+            for j in range(int(duration*FPS)): frames.append(np.asarray(frame(*scene,j/FPS)))
+            clips.append(ImageSequenceClip(frames,fps=FPS).with_duration(duration).with_audio(a))
         final=concatenate_videoclips(clips,method="compose")
-        final.write_videofile(str(OUT),fps=FPS,codec="libx264",audio_codec="aac",preset="ultrafast",threads=2,logger="bar")
+        final.write_videofile(str(OUT),fps=FPS,codec="libx264",audio_codec="aac",preset="medium",threads=2,logger="bar")
         final.close()
     finally:
         for c in clips:
-            try: c.close()
-            except Exception: pass
+            try:c.close()
+            except:pass
         for a in audios:
-            try: a.close()
-            except Exception: pass
+            try:a.close()
+            except:pass
     print(f"Created {OUT}")
-
-if __name__=="__main__":
-    main()
+if __name__=="__main__": main()
