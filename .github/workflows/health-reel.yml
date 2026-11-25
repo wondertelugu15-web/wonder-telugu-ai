@@ -3,8 +3,8 @@ name: Wonder Telugu Free Health Reel
 on:
   workflow_dispatch:
   schedule:
-    # Weekly pilot build, not auto-publishing. GitHub Actions uses UTC.
-    - cron: "30 3 * * 1"
+    # Daily generation at 09:00 IST. It creates a review artifact and does not auto-publish.
+    - cron: "30 3 * * *"
 
 permissions:
   contents: read
