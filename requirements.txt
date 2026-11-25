@@ -1,6 +1,7 @@
 edge-tts
 moviepy==2.2.1
 Pillow
+numpy
 requests
 replicate
 google-api-python-client
